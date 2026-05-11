@@ -30,21 +30,39 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+  # Game engine
+  flame: ^1.21.0
+  flame_audio: ^2.10.4
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Local database
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
+
+  # Firebase
+  firebase_core: ^3.13.1
+  firebase_auth: ^5.5.1
+  firebase_crashlytics: ^4.3.1
+
+  # i18n
+  intl: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Code generation for Isar
+  build_runner: ^2.4.13
+  isar_generator: ^3.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
