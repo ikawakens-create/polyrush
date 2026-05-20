@@ -38,6 +38,21 @@ class PolyominoData {
   final List<Cell> cells;
 
   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! PolyominoData) return false;
+    if (id != other.id || size != other.size) return false;
+    if (cells.length != other.cells.length) return false;
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[i] != other.cells[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, size, Object.hashAll(cells));
+
+  @override
   String toString() => 'PolyominoData($id, size=$size, cells=$cells)';
 }
 
@@ -67,7 +82,7 @@ const PolyominoData kL3 = PolyominoData(
 );
 
 /// トロミノ全種（2種）。
-const List<PolyominoData> kTriominoes = [kI3, kL3];
+const List<PolyominoData> kTrominoes = [kI3, kL3];
 
 // ─── テトロミノ（4セル）: 5種 ──────────────────────────────────────
 
@@ -106,6 +121,19 @@ const PolyominoData kT4 = PolyominoData(
   cells: [(0, 0), (0, 1), (0, 2), (1, 1)],
 );
 
+/// L4 テトロミノ
+///
+/// ```
+/// ##
+/// #
+/// #
+/// ```
+const PolyominoData kL4 = PolyominoData(
+  id: 'L4',
+  size: 4,
+  cells: [(0, 0), (0, 1), (1, 0), (2, 0)],
+);
+
 /// S4 テトロミノ（S字型）
 ///
 /// ```
@@ -118,20 +146,8 @@ const PolyominoData kS4 = PolyominoData(
   cells: [(0, 1), (0, 2), (1, 0), (1, 1)],
 );
 
-/// Z4 テトロミノ（Z字型）
-///
-/// ```
-/// ##
-///  ##
-/// ```
-const PolyominoData kZ4 = PolyominoData(
-  id: 'Z4',
-  size: 4,
-  cells: [(0, 0), (0, 1), (1, 1), (1, 2)],
-);
-
 /// テトロミノ全種（5種）。
-const List<PolyominoData> kTetrominoes = [kI4, kO4, kT4, kS4, kZ4];
+const List<PolyominoData> kTetrominoes = [kI4, kO4, kT4, kL4, kS4];
 
 // ─── ペントミノ（5セル）: 12種 ─────────────────────────────────────
 
@@ -314,7 +330,7 @@ const List<PolyominoData> kPentominoes = [
 /// パズル生成時は [PolyominoData.size] でフィルタして難易度別プールを構成する。
 /// 例: `kAllPolyominoes.where((p) => p.size == 4)` でテトロミノのみ取得。
 const List<PolyominoData> kAllPolyominoes = [
-  ...kTriominoes,
+  ...kTrominoes,
   ...kTetrominoes,
   ...kPentominoes,
 ];
