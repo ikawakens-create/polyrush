@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (2026-05-20)
 
 ## Context
 
@@ -55,7 +55,15 @@ dartdoc コメントで明記し、読み替えが必要な箇所を明示する
   → 対処：`polyomino.dart` のライブラリ dartdoc に「座標系は (y, x) = (row, col)」と
   明記し、ADR へのリンクを添える。
 
+**シリアライズ境界での扱い：**
+仕様書 § 4.2.3 の操作ログフォーマットは `{"x": 3, "y": 2}` 形式で
+定義されている。内部表現の `(y, x)` Record と外部表現の JSON キーの
+対応は、データ層（`lib/data/models/`）でのシリアライズ時に集中的に
+変換する。domain 層は常に `(y, x)` 順で動作し、外部表現の存在を
+意識しなくてよい設計とする。
+
 ## References
 
 - [docs/SPECIFICATION.md § 4.3.3 バックトラッキングによる「解の妥当性」検証](../SPECIFICATION.md#433-ステップ3バックトラッキングによる解の妥当性検証)
+- [docs/SPECIFICATION.md § 4.2.3 Append-only 操作ログ](../SPECIFICATION.md#423-append-only-操作ログnalla-pass方式の応用)
 - [lib/domain/puzzle/polyomino.dart](../../lib/domain/puzzle/polyomino.dart)
