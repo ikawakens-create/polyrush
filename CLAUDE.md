@@ -1,0 +1,124 @@
+# CLAUDE.md - polyrush プロジェクト作業ガイド
+
+このファイルは Claude (Code Web / Opus / その他のセッション) が
+polyrush リポジトリで作業する際に必ず守るべきルールを定義する。
+
+すべてのタスクは、このファイルを読んでから開始すること。
+
+---
+
+## 🚨 最重要: 作業開始時の環境チェック
+
+**いかなるタスクも、以下のチェックを完了してから着手すること。**
+このステップを省略するとリポジトリの状態を取り違え、既存の成果を
+上書きしたり、孤立ブランチを作成する事故につながる。
+
+```bash
+# 1. リモートの最新を取得
+git fetch origin
+
+# 2. 開発ベースブランチに移動
+git checkout develop
+
+# 3. リモートと同期
+git pull origin develop
+
+# 4. 現在の状態を確認
+git log --oneline -5
+git branch -a
+ls lib/domain/puzzle/
+```
+
+### 期待される結果
+- 現在ブランチ: `develop`
+- 直近コミットに過去のマージ履歴が見える
+- `lib/domain/puzzle/` 配下に既存の Task 成果ファイルが存在
+
+### 結果が期待と異なる場合
+- 作業を停止する
+- ユーザーに状況を報告する
+- **絶対に「ファイルが無いから作り直そう」と判断しない**
+
+---
+
+## 🌳 ブランチ運用
+
+- ベースブランチ: `develop`(`main` ではない)
+- 機能ブランチ命名: `feature/<task-name>`
+  - 例: `feature/puzzle-generator`, `feature/polyomino-transformer`
+- 自動生成ブランチ名(例: `claude/implement-xxx-XXXXX`)は使用しない
+- すべての PR は `develop` を base に作成
+- 直接 `develop` や `main` にコミットしない
+
+---
+
+## 📂 既存ファイル変更ポリシー
+
+過去のタスクで develop にマージ済みのファイルは「確定済み資産」である。
+新規タスクで以下のファイルを変更してはいけない:
+
+- `lib/domain/puzzle/polyomino.dart` (Task 1)
+- `lib/domain/puzzle/polyomino_transformer.dart` (Task 2)
+- `docs/adr/*.md` (合意済みの設計判断)
+- `pubspec.yaml` (依存変更は別途相談)
+
+これらの API を変更する必要が生じた場合:
+1. 作業を停止
+2. ユーザーに「変更が必要な理由」を報告
+3. ユーザーの判断を待つ(独断で変更しない)
+
+---
+
+## 🎯 座標系規約 (ADR-0006)
+
+ポリオミノ・グリッドの座標は **`(y, x) = (row, col)`** の順で統一。
+
+- 第1要素: `y` (行、上から下に増加)
+- 第2要素: `x` (列、左から右に増加)
+
+詳細: `docs/adr/0006-polyomino-coordinate-order.md`
+
+---
+
+## 🧪 テスト規約
+
+- 既存テストファイルのスタイル (group ネスト、`reason=` 付き expect) に揃える
+- ストレステスト等の重いテストは `@Tags(['slow'])` で別レーン
+- カバレッジ 100% を目標
+- `dart analyze` でエラー・警告ゼロ
+- `dart format` 適用済み
+
+---
+
+## 🤝 マルチ AI 運用について
+
+このプロジェクトでは以下の役割分担で開発する:
+
+- **Claude Opus** (claude.ai): 設計、レビュー、判断
+- **Claude Code Web** (このセッションかも): 実装、テスト
+- **人間 (井川)**: 最終判断、マージ、運営
+
+Code Web は実装に集中し、設計判断はユーザー経由で Opus に委ねる。
+不明点は推測せず、ユーザーに質問すること。
+
+---
+
+## 📋 タスク完了時の報告フォーマット
+
+タスク完了時は以下を必ず含めて報告すること:
+
+1. **環境チェックの結果**(`git log` `ls` の出力を貼る)
+2. **作成ファイル一覧**(「新規」「変更」を明示)
+3. **削除/変更した既存ファイル**(あれば理由とともに)
+4. **テスト結果**(件数、pass/fail、所要時間)
+5. **指示書からの逸脱があれば明記**
+6. **PR URL**(まだなら理由を説明)
+
+---
+
+## 📚 関連ドキュメント
+
+- 仕様書: `docs/SPECIFICATION.md`
+- ADR 一覧: `docs/adr/`
+- 開発ステップ: `docs/SPECIFICATION.md` § 19
+- 本ガイドの根拠: `docs/adr/0007-claude-session-guardrails.md`
