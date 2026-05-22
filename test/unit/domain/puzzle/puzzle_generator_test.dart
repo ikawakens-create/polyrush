@@ -499,8 +499,8 @@ void main() {
     }
   });
 
-  // ─── 16. source は正規化済み ─────────────────────────────────────────────
-  group('PlacedBlock.source は正規化済み', () {
+  // ─── 16. source / orientation の正規化 ──────────────────────────────────
+  group('PlacedBlock.source / orientation は正規化済み', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: normalize(source).cells == source.cells', () {
         final puzzle =
@@ -512,6 +512,41 @@ void main() {
             normalized.cells,
             src.cells,
             reason: '${diff.name}: blocks[$i].source が非正規化',
+          );
+        }
+      });
+      test('${diff.name}: orientation は正規化済みかつ source と同じセル数', () {
+        final puzzle =
+            PuzzleGenerator.construct(difficulty: diff, seed: 10);
+        for (final block in puzzle.blocks) {
+          final normalized = PolyominoTransformer.normalize(block.orientation);
+          expect(
+            normalized.cells,
+            block.orientation.cells,
+            reason: 'orientation が非正規化',
+          );
+          expect(
+            block.orientation.cells.length,
+            block.source.cells.length,
+            reason: 'orientation と source のセル数不一致',
+          );
+        }
+      });
+      test('${diff.name}: cells は orientation の平行移動である', () {
+        final puzzle =
+            PuzzleGenerator.construct(difficulty: diff, seed: 11);
+        for (final block in puzzle.blocks) {
+          final normalizedPlaced = PolyominoTransformer.normalize(
+            PolyominoData(
+              id: block.source.id,
+              size: block.source.size,
+              cells: block.cells,
+            ),
+          ).cells;
+          expect(
+            normalizedPlaced,
+            block.orientation.cells,
+            reason: 'cells が orientation の平行移動になっていない',
           );
         }
       });
@@ -578,20 +613,13 @@ void main() {
   // ─── 19. ピースの向きの多様性 ───────────────────────────────────────────
   group('ピースの向きの多様性 (seed 0..99)', () {
     for (final diff in Difficulty.values) {
-      test('${diff.name}: blocks[0] のユニーク (source.id, cells) が >= 5', () {
+      test('${diff.name}: blocks[0] のユニーク (source.id, orientation.cells) が >= 5', () {
         final uniqueKeys = <String>{};
         for (var s = 0; s < 100; s++) {
           final puzzle =
               PuzzleGenerator.construct(difficulty: diff, seed: s);
           final b = puzzle.blocks[0];
-          final normalizedCells = PolyominoTransformer.normalize(
-            PolyominoData(
-              id: b.source.id,
-              size: b.source.size,
-              cells: b.cells,
-            ),
-          ).cells;
-          uniqueKeys.add('${b.source.id}:$normalizedCells');
+          uniqueKeys.add('${b.source.id}:${b.orientation.cells}');
         }
         expect(
           uniqueKeys.length,
@@ -696,7 +724,11 @@ void main() {
     test('puzzle.blocks.add() は UnsupportedError をスローする', () {
       final puzzle =
           PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
-      final dummy = PlacedBlock(source: kI3, cells: [(0, 0), (0, 1), (0, 2)]);
+      final dummy = PlacedBlock(
+        source: kI3,
+        orientation: kI3,
+        cells: [(0, 0), (0, 1), (0, 2)],
+      );
       expect(
         () => puzzle.blocks.add(dummy),
         throwsA(isA<UnsupportedError>()),
@@ -714,28 +746,36 @@ void main() {
 
   // ─── 24. パフォーマンス ──────────────────────────────────────────────────
   group('パフォーマンス', () {
-    test('1問あたり 50ms 以内 (easy, seed=0)', () {
-      final sw = Stopwatch()..start();
-      PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
-      sw.stop();
-      expect(
-        sw.elapsedMilliseconds,
-        lessThan(50),
-        reason: '生成時間 ${sw.elapsedMilliseconds}ms が 50ms を超過',
-      );
-    });
-    test('10問の合計が 500ms 以内 (hard)', () {
-      final sw = Stopwatch()..start();
-      for (var s = 0; s < 10; s++) {
-        PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
-      }
-      sw.stop();
-      expect(
-        sw.elapsedMilliseconds,
-        lessThan(500),
-        reason: '10問合計 ${sw.elapsedMilliseconds}ms が 500ms を超過',
-      );
-    });
+    test(
+      '1問あたり 50ms 以内 (easy, seed=0)',
+      () {
+        final sw = Stopwatch()..start();
+        PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+        sw.stop();
+        expect(
+          sw.elapsedMilliseconds,
+          lessThan(50),
+          reason: '生成時間 ${sw.elapsedMilliseconds}ms が 50ms を超過',
+        );
+      },
+      tags: ['slow'],
+    );
+    test(
+      '10問の合計が 500ms 以内 (hard)',
+      () {
+        final sw = Stopwatch()..start();
+        for (var s = 0; s < 10; s++) {
+          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
+        }
+        sw.stop();
+        expect(
+          sw.elapsedMilliseconds,
+          lessThan(500),
+          reason: '10問合計 ${sw.elapsedMilliseconds}ms が 500ms を超過',
+        );
+      },
+      tags: ['slow'],
+    );
   });
 
   // ─── 25. ADR-0006 準拠 ───────────────────────────────────────────────────

@@ -10,14 +10,22 @@ import 'package:polyrush/domain/puzzle/polyomino_transformer.dart';
 /// 配置済みピースを表すイミュータブルデータ。
 ///
 /// [source] は pool から選んだ正規化済みの [PolyominoData]（カノニカル形）。
-/// [cells] はグリッド上の絶対座標（`source.cells` のカノニカル形とは異なる）。
+/// [orientation] は実際に配置に使った向き（回転・反転後、正規化済み）。
+/// [cells] はグリッド上の絶対座標（[orientation].cells を平行移動した結果）。
 class PlacedBlock {
   PlacedBlock({
     required this.source,
+    required this.orientation,
     required List<Cell> cells,
   }) : cells = List.unmodifiable(cells);
 
+  /// pool から選ばれた元ピース（種類の識別用、カノニカル形）。
   final PolyominoData source;
+
+  /// 実際に配置に使った向き（回転・反転後、正規化済みカノニカル形）。
+  final PolyominoData orientation;
+
+  /// グリッド上の絶対座標。[orientation].cells を平行移動した結果。
   final List<Cell> cells;
 }
 
@@ -78,29 +86,46 @@ class PuzzleGenerator {
     final placedCells = <Cell>{};
     final blocks = <PlacedBlock>[];
 
+    // ピースIDをキーに allUniqueOrientations の結果をキャッシュする。
+    final orientationCache = <String, List<PolyominoData>>{};
+    List<PolyominoData> orientationsOf(PolyominoData piece) =>
+        orientationCache.putIfAbsent(
+          piece.id,
+          () => PolyominoTransformer.allUniqueOrientations(piece).toList(),
+        );
+
     // § 4.3.2: 最初の1個目を原点付近に置く（向きはランダム）。
     final firstPiece = pool[random.nextInt(pool.length)];
-    final firstOrientations =
-        PolyominoTransformer.allUniqueOrientations(firstPiece).toList();
+    final firstOrientations = orientationsOf(firstPiece);
     final firstOriented =
         firstOrientations[random.nextInt(firstOrientations.length)];
-    final firstCells = List<Cell>.from(firstOriented.cells);
+    final firstCells = List<Cell>.from(firstOriented.cells)
+      ..sort(
+        (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
+      );
     placedCells.addAll(firstCells);
-    blocks.add(PlacedBlock(source: firstPiece, cells: firstCells));
+    blocks.add(
+      PlacedBlock(
+        source: firstPiece,
+        orientation: firstOriented,
+        cells: firstCells,
+      ),
+    );
 
     // § 4.3.2: for i = 2 to N。
     for (var i = 1; i < blockCount; i++) {
       var placed = false;
       for (var attempt = 0; attempt < maxAttempts; attempt++) {
         final piece = pool[random.nextInt(pool.length)];
-        final orientations =
-            PolyominoTransformer.allUniqueOrientations(piece).toList();
+        final orientations = orientationsOf(piece);
         final oriented = orientations[random.nextInt(orientations.length)];
         final candidates = listPlacementCandidates(oriented, placedCells);
         if (candidates.isNotEmpty) {
           final chosen = candidates[random.nextInt(candidates.length)];
           placedCells.addAll(chosen);
-          blocks.add(PlacedBlock(source: piece, cells: chosen));
+          blocks.add(
+            PlacedBlock(source: piece, orientation: oriented, cells: chosen),
+          );
           placed = true;
           break;
         }
@@ -172,7 +197,9 @@ class PuzzleGenerator {
         // (A) 既配置セルと重なっていない
         if (translated.any((c) => placedCells.contains(c))) continue;
 
-        // (B) 少なくとも1辺隣接（g が境界マスなので常に成立するが明示チェック）
+        // (B) ピース全体のいずれかのセルが既配置と辺隣接する。
+        //     g は境界マスだが、g に合わせるセル p の取り方次第で
+        //     ピース全体が隣接しない配置もあり得るため、明示チェックが必要。
         if (!translated.any(
           (c) =>
               placedCells.contains((c.$1 - 1, c.$2)) ||
