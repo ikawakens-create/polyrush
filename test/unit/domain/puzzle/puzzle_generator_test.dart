@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
@@ -342,7 +341,7 @@ void main() {
         final puzzle =
             PuzzleGenerator.construct(difficulty: diff, seed: 3);
         final minY =
-            puzzle.frame.map((c) => c.$1).reduce(min);
+            puzzle.frame.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
         expect(
           puzzle.boundingBox.minY,
           minY,
@@ -353,7 +352,7 @@ void main() {
         final puzzle =
             PuzzleGenerator.construct(difficulty: diff, seed: 3);
         final maxY =
-            puzzle.frame.map((c) => c.$1).reduce(max);
+            puzzle.frame.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
         expect(
           puzzle.boundingBox.maxY,
           maxY,
@@ -364,7 +363,7 @@ void main() {
         final puzzle =
             PuzzleGenerator.construct(difficulty: diff, seed: 3);
         final minX =
-            puzzle.frame.map((c) => c.$2).reduce(min);
+            puzzle.frame.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
         expect(
           puzzle.boundingBox.minX,
           minX,
@@ -375,7 +374,7 @@ void main() {
         final puzzle =
             PuzzleGenerator.construct(difficulty: diff, seed: 3);
         final maxX =
-            puzzle.frame.map((c) => c.$2).reduce(max);
+            puzzle.frame.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
         expect(
           puzzle.boundingBox.maxX,
           maxX,
@@ -754,15 +753,15 @@ void main() {
         lessThanOrEqualTo(puzzle.boundingBox.maxX),
       );
     });
-    test('frame の Cell は (y, x) 順 — boundingBox.minY が frame の min-$1 と一致', () {
+    test('frame の Cell は (y, x) 順 — boundingBox.minY が frame の min y と一致', () {
       final puzzle =
           PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0);
       final minFirstComponent =
-          puzzle.frame.map((c) => c.$1).reduce(min);
+          puzzle.frame.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
       expect(
         puzzle.boundingBox.minY,
         minFirstComponent,
-        reason: 'minY は Cell.$1 (y/row) の最小値と一致すべき',
+        reason: 'minY は Cell の第1要素 (y/row) の最小値と一致すべき',
       );
     });
   });
