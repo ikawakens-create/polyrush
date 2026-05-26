@@ -89,18 +89,17 @@ void main() {
       expect(count, 1, reason: 'limit=1 で探索を打ち切り 1 を返す');
     });
 
-    test('複数解がある場合に limit: 2 で頭打ち', () {
-      // 4×1 フレームに kI4 × 1 → 1 通り
-      // ただし limit テストのため別のフレームを使う:
-      // 2×2 フレームに kO4 × 1 → 1 通り (O4 は対称なので 1 通り)
-      // より多い解のために 3×2 フレームに kL3 × 2 を使う:
-      // kL3 2 個で 3×2 を埋める → 複数の向きで埋まる
+    test('真の解数2に対し limit で頭打ちされる', () {
+      // kL3 2 個で 3行×2列の長方形を埋める → 解はちょうど 2通り（手計算で確定済み）。
       final frame = <Cell>{(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)};
+
       final countFull = PuzzleSolver.countSolutions(
         frame: frame,
         shapes: [kL3, kL3],
         limit: 100,
       );
+      expect(countFull, 2, reason: 'L3×2 で 3×2 長方形を埋める解は 2通り');
+
       final countLimited = PuzzleSolver.countSolutions(
         frame: frame,
         shapes: [kL3, kL3],
@@ -108,10 +107,9 @@ void main() {
       );
       expect(
         countLimited,
-        lessThanOrEqualTo(countFull),
-        reason: 'limit を設定すると全解以下になる',
+        1,
+        reason: '真の解数 2 に対し limit=1 で頭打ちされ 1 を返す（capping が効いている証拠）',
       );
-      expect(countLimited, greaterThanOrEqualTo(1), reason: '少なくとも 1 解は存在する');
     });
   });
 
