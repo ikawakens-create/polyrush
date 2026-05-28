@@ -202,7 +202,7 @@ void main() {
       final result = VerifiedPuzzleGenerator.generate(
         difficulty: Difficulty.easy,
         seed: 0,
-        overrideConstruct: (_, __) =>
+        overrideConstruct: (_, _) =>
             throw const GenerationFailedException('forced failure'),
       );
       expect(
