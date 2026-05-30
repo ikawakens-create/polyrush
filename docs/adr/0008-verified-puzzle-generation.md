@@ -219,3 +219,63 @@ Task 4 のレビュー結論として「採用・再生成の判断はソルバ�
 - Task 4 レビュー結論（解数判定は呼び出し側に置く）
 - lib/domain/puzzle/puzzle_generator.dart（Task 3 / PR #18）
 - lib/domain/puzzle/solver.dart（Task 4 / PR #20）
+
+## サブシード派生（_deriveSubSeed）の設計根拠
+
+### 背景
+VerifiedPuzzleGenerator.generate(seed) は、入力 seed をそのまま
+construct(seed) に渡すのではなく、_deriveSubSeed(seed, attempt) で
+派生させた「サブシード」を用いて construct を呼ぶ。本節はこの設計の
+根拠と、係数の出自、検証テストの所在を記録する。
+
+### なぜ attempt=0 でも元 seed と一致させないのか
+_deriveSubSeed は attempt=0 のときでも、入力 seed とは異なる値を返す。
+これは意図的な仕様である。
+
+理由: 入力 seed が偶然「解が4以上になる悪い問題」を生む場合でも、
+generate は必ず別の seed 空間へ写してから construct するため、
+悪い問題を構造的に回避（迂回）できる。もし attempt=0 で元 seed を
+そのまま使う設計だと、「特定の入力 seed では必ず悪い問題が出る」
+という固定的な弱点が残ってしまう。
+
+具体例: generate(easy, seed=2) は construct(easy, 2) を一度も呼ばず、
+_deriveSubSeed(2, 0) = 3329051 を用いて construct(easy, 3329051) を呼ぶ。
+このため、construct(easy, 2) 単体が生む問題（実測で解数=4）は、
+generate の経路には登場しない。これは「救済」ではなく「迂回」である。
+（この迂回の事実は PR #25 の回帰テストで明示的に検証している。）
+
+### 係数の出自（マジックナンバーの説明）
+_deriveSubSeed は線形合同法（LCG）系の撹拌に、以下の既知の定数を用いる。
+これらは出所不明の任意値ではなく、文献に由来する標準的な LCG 係数である。
+
+- 1664525 および 1013904223:
+  『Numerical Recipes in C』が推奨する LCG の乗数・加数（法 M = 2^32）。
+  この組は周期が全 32bit 空間を一巡する（full period）性質を持つ。
+- 22695477:
+  Borland C/C++ が採用する LCG の乗数。
+
+注意: Numerical Recipes 自身が述べる通り、これらの LCG は高品質な
+乱数が必須の用途（モンテカルロ法など）には適さない。しかし本用途は
+「seed から再現可能かつ十分に分散した別 seed を決定論的に得る」こと
+のみであり、暗号強度・統計的乱数品質は要件ではない。決定論性と
+分散性が満たされれば十分なため、この用途では問題ない。
+
+### 救済経路の実例（hard/seed=75）
+generate が「解4以上を却下し、サブシードを変えて再生成する」救済機構が
+実際に働く例として、hard/seed=75 を記録する。
+
+- attempt=0: subSeed=124839376 → 生成パズルの解数=4 → 却下
+- attempt=1: subSeed=1138743599 → 生成パズルの解数=1 → 採用
+- 結果: attemptsUsed=2, solutionCount=1, isFallback=false
+
+この救済経路は PR #26 の回帰テスト（テストF/G）で固定的に検証している。
+VerifiedPuzzle.attemptsUsed が公開されているため、production を変更せず
+テストのみで「再生成が実際に走り、フォールバックではなく正規の救済で
+良問に収束した」ことを検証できている。
+
+### 検証テストの所在
+- 迂回の証明: test/unit/domain/puzzle/verified_puzzle_generator_test.dart
+  （generate と construct の frame 不一致を検証 / PR #25）
+- 救済経路の回帰: 同ファイル「救済経路の回帰テスト」グループ
+  （hard/seed=75 で attemptsUsed>1, isFallback=false, solutionCount<=3 / PR #26）
+- easy/seed=2 の地の数字: construct(easy, 2) の解数=4 を実測で固定（PR #25）
