@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
+import 'package:polyrush/domain/puzzle/solver.dart';
 import 'package:polyrush/domain/puzzle/verified_puzzle_generator.dart';
 
 void main() {
@@ -105,30 +106,47 @@ void main() {
 
   // ─── 3. 回帰テスト ────────────────────────────────────────────────────────
   group('回帰テスト', () {
-    test('easy/seed=2: 解 4 以上のパズルを通常採用していない', () {
-      // Task 4 で easy/seed=2 のパズルが解 4 通りと判明した既知の問題（ADR-0008）。
-      final result = VerifiedPuzzleGenerator.generate(
-        difficulty: Difficulty.easy,
-        seed: 2,
-      );
-      expect(
-        result,
-        isA<Ok<VerifiedPuzzle, GenerationError>>(),
-        reason: 'easy/seed=2: Ok を返すこと',
-      );
-      final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
-      // フォールバックでない場合、solutionCount は必ず 1〜3。
-      // フォールバックの場合は isFallback=true が設定されている。
-      // どちらにせよ「解 4 以上のパズルを通常採用（isFallback=false）していない」
-      // ことを確認する。
-      if (!vp.isFallback) {
-        expect(
-          vp.solutionCount,
-          lessThan(4),
-          reason: 'easy/seed=2: 通常採用時は解 1〜3',
+    test(
+      'easy/seed=2: 同一シードで決定論的に同じ有効パズルを返す（救済の検証ではない）',
+      () {
+        // このテストは「generate が救済経路を実際に踏んだか」は主張しない。
+        // 検証するのは (1) 決定論性 と (2) 出力の妥当性 のみ。
+        final r1 = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.easy,
+          seed: 2,
         );
-      }
-    });
+        final r2 = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.easy,
+          seed: 2,
+        );
+        expect(
+          r1,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'easy/seed=2: 1 回目が Ok を返すこと',
+        );
+        expect(
+          r2,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'easy/seed=2: 2 回目が Ok を返すこと',
+        );
+        final v1 = (r1 as Ok<VerifiedPuzzle, GenerationError>).value;
+        final v2 = (r2 as Ok<VerifiedPuzzle, GenerationError>).value;
+        // (1) 決定論: 同じシードで 2 回呼ぶと frame が完全一致する。
+        expect(
+          v1.puzzle.frame,
+          equals(v2.puzzle.frame),
+          reason: 'easy/seed=2: 決定論的に同じ frame が得られること',
+        );
+        // (2) 有効な良問: 通常採用時（isFallback=false）は解数 ≤ 3。
+        if (!v1.isFallback) {
+          expect(
+            v1.solutionCount,
+            lessThanOrEqualTo(3),
+            reason: 'easy/seed=2: 通常採用時の解数は 3 以下（有効な良問）',
+          );
+        }
+      },
+    );
   });
 
   // ─── 4. フォールバック ────────────────────────────────────────────────────
@@ -317,5 +335,83 @@ void main() {
         );
       }, tags: ['slow']);
     }
+  });
+
+  // ─── 8. 地の数字実測 ──────────────────────────────────────────────────────────
+  group('地の数字実測', () {
+    test('construct(easy, seed:2) の解数を実測値で固定', () {
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 2,
+      );
+      final shapes = puzzle.blocks.map((b) => b.source).toList();
+      // limit を 10 にして 4 以上の解数も正確に数える（デフォルト 4 だと打ち切りになる）。
+      final count = PuzzleSolver.countSolutions(
+        frame: puzzle.frame,
+        shapes: shapes,
+        limit: 10,
+      );
+      expect(
+        count,
+        equals(4),
+        reason: 'construct(easy, seed:2) の解数を実測値で固定。'
+            '「seed=2は解4」という従来の言い伝えの真偽をここで確定させる。',
+      );
+    });
+  });
+
+  // ─── 9. generate の迂回証明 ───────────────────────────────────────────────────
+  group('generate の迂回証明', () {
+    test('generate(easy, 2) は construct(easy, 2) とは別パズルを作る', () {
+      // generate は attempt=0 から _deriveSubSeed(2, 0) = 3329051 をサブシードとして
+      // construct を呼ぶため、construct(easy, seed:2) とは異なるパズルになる。
+      final viaConstruct = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 2,
+      );
+      final result = VerifiedPuzzleGenerator.generate(
+        difficulty: Difficulty.easy,
+        seed: 2,
+      );
+      expect(
+        result,
+        isA<Ok<VerifiedPuzzle, GenerationError>>(),
+        reason: 'generate(easy, 2) が Ok を返すこと',
+      );
+      final viaGenerate = (result as Ok<VerifiedPuzzle, GenerationError>).value;
+      // GeneratedPuzzle に == がないため frame（Set<Cell>）で直接比較する。
+      expect(
+        viaGenerate.puzzle.frame,
+        isNot(equals(viaConstruct.frame)),
+        reason: 'generate は attempt0 からサブシード派生seedで construct を呼ぶため、'
+            'construct(easy,2) とは別パズルになる（＝seed=2の問題は救済ではなく迂回される）。',
+      );
+    });
+  });
+
+  // ─── 10. hard 妥当性スイープ (slow) ──────────────────────────────────────────
+  group('hard 妥当性スイープ', () {
+    test('hard: seed=0..199 の出力はすべて有効（解数 ≤ 3 またはフォールバック）', () {
+      // このテストは出力の妥当性のみを検証する。generate は試行回数を外部公開
+      // しないため「救済経路を実際に踏んだか」は検証できない（観測性ギャップ）。
+      // 救済経路の本物の回帰テストは観測性追加（将来のB案）を要する。
+      for (var seed = 0; seed < 200; seed++) {
+        final result = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.hard,
+          seed: seed,
+        );
+        expect(
+          result,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'hard/seed=$seed: Ok を返すこと',
+        );
+        final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
+        expect(
+          vp.solutionCount <= 3 || vp.isFallback,
+          isTrue,
+          reason: 'hard/seed=$seed: 解数が 3 以下、またはフォールバックであること',
+        );
+      }
+    }, tags: ['slow']);
   });
 }
