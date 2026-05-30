@@ -59,6 +59,11 @@ ls lib/domain/puzzle/
 
 - `lib/domain/puzzle/polyomino.dart` (Task 1)
 - `lib/domain/puzzle/polyomino_transformer.dart` (Task 2)
+- `lib/domain/puzzle/puzzle_generator.dart` (Task 3)
+- `lib/domain/puzzle/difficulty.dart` (Task 3)
+- `lib/domain/puzzle/solver.dart` (Task 4)
+- `lib/domain/puzzle/verified_puzzle_generator.dart` (Task 5)
+- `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
 - `pubspec.yaml` (依存変更は別途相談)
 
