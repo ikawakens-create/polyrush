@@ -414,4 +414,92 @@ void main() {
       }
     }, tags: ['slow']);
   });
+
+  // ─── 11. 救済経路の回帰テスト（本物） ──────────────────────────────────────────
+  group('救済経路の回帰テスト', () {
+    // これは Task 5.5 で積み残した「救済経路の本物の回帰テスト」。
+    // VerifiedPuzzle.attemptsUsed が公開されているため production 変更なしで実現。
+    //
+    // 探索スクリプトで hard/seed=0..999 を走査して発見した救済成功 seed:
+    //   seed=75: attemptsUsed=2, solutionCount=1, isFallback=false
+    //   (attempt=0 のサブシード 124839376 が解 4 で却下 → attempt=1 で解 1 に収束)
+    const rescueSeed = 75; // ステップ1の探索で発見。attemptsUsed=2, solutionCount=1
+
+    test(
+      'hard/seed=75: 救済経路を踏んで良問に収束すること（attemptsUsed > 1, isFallback=false）',
+      () {
+        final result = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.hard,
+          seed: rescueSeed,
+        );
+        expect(
+          result,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'hard/seed=$rescueSeed: Ok を返すこと',
+        );
+        final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
+        // (1) 再生成が実際に走ったこと（救済経路を踏んだこと）の証拠。
+        expect(
+          vp.attemptsUsed,
+          greaterThan(1),
+          reason: '再生成が実際に走ったこと（救済経路を踏んだこと）の証拠。'
+              'attemptsUsed=1 に退行した場合、最初の試行が採用されており救済が起きていない。',
+        );
+        // (2) フォールバックではなく正規の救済で良問に収束したこと。
+        expect(
+          vp.isFallback,
+          isFalse,
+          reason: 'フォールバックではなく正規の救済で良問に収束したこと。'
+              'isFallback=true に退行した場合、全試行が解4以上になっており救済失敗。',
+        );
+        // (3) 救済後のパズルが採用基準（解3以下）を満たすこと。
+        expect(
+          vp.solutionCount,
+          lessThanOrEqualTo(3),
+          reason: '救済後のパズルが採用基準（解 3 以下）を満たすこと。',
+        );
+      },
+    );
+
+    test(
+      'hard/seed=75: 救済経路を含めて生成が決定論的であること（attemptsUsed・solutionCount が再現する）',
+      () {
+        final r1 = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.hard,
+          seed: rescueSeed,
+        );
+        final r2 = VerifiedPuzzleGenerator.generate(
+          difficulty: Difficulty.hard,
+          seed: rescueSeed,
+        );
+        expect(
+          r1,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'hard/seed=$rescueSeed: 1 回目が Ok を返すこと',
+        );
+        expect(
+          r2,
+          isA<Ok<VerifiedPuzzle, GenerationError>>(),
+          reason: 'hard/seed=$rescueSeed: 2 回目が Ok を返すこと',
+        );
+        final v1 = (r1 as Ok<VerifiedPuzzle, GenerationError>).value;
+        final v2 = (r2 as Ok<VerifiedPuzzle, GenerationError>).value;
+        expect(
+          v1.attemptsUsed,
+          equals(v2.attemptsUsed),
+          reason: '救済経路を含めて生成が決定論的であること（seed 固定で attemptsUsed が再現する）。',
+        );
+        expect(
+          v1.solutionCount,
+          equals(v2.solutionCount),
+          reason: '救済経路を含めて生成が決定論的であること（seed 固定で solutionCount が再現する）。',
+        );
+        expect(
+          v1.puzzle.frame,
+          equals(v2.puzzle.frame),
+          reason: '救済後のパズル枠が決定論的に一致すること。',
+        );
+      },
+    );
+  });
 }
