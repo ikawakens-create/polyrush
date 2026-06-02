@@ -255,4 +255,52 @@ void main() {
       expect(result, topLeftCell, reason: 'cell(2,1) の中心を逆引きして (2,1) が返る');
     });
   });
+
+  // ─── G. padding（外周余白） ───────────────────────────────────────
+  group('G. padding（外周余白）', () {
+    // boundingBox rows=3, cols=4, canvas 400x400, padding=20
+    // availWidth = availHeight = 400 - 20*2 = 360
+    // cellSize = min(360/4, 360/3) = min(90,120) = 90
+    // boardSize = 360x270、boardOrigin = (20, 20 + (360-270)/2) = (20, 65)
+    late GridGeometry geo;
+
+    setUp(() {
+      geo = GridGeometry.fit(
+        boundingBox: (minY: 0, maxY: 2, minX: 0, maxX: 3),
+        canvasSize: const Size(400, 400),
+        padding: 20,
+      );
+    });
+
+    test('cellSize == 90', () {
+      expect(
+        geo.cellSize,
+        closeTo(90.0, 1e-10),
+        reason: '余白20を四辺から引き min(360/4, 360/3) = 90',
+      );
+    });
+
+    test('boardOrigin == (20, 65)', () {
+      expect(geo.boardOrigin.dx, closeTo(20.0, 1e-10),
+          reason: '盤幅360 == 使用可能幅360。左余白は padding ぶんの 20');
+      expect(geo.boardOrigin.dy, closeTo(65.0, 1e-10),
+          reason: 'padding 20 + 上下中央寄せ (360-270)/2 = 45 → 65');
+    });
+
+    test('padding 込みでも全セル往復一致', () {
+      for (var row = 0; row < geo.rows; row++) {
+        for (var col = 0; col < geo.cols; col++) {
+          final cell = (geo.originRow + row, geo.originCol + col);
+          final result = geo.pixelToCell(geo.cellCenter(cell));
+          expect(result, cell,
+              reason: 'cell $cell の中心を逆引きして $cell に戻らない (got $result)');
+        }
+      }
+    });
+
+    test('余白の中（盤の手前）は null', () {
+      expect(geo.pixelToCell(const Offset(10, 10)), isNull,
+          reason: '(10,10) は boardOrigin(20,65) より手前＝余白内なので盤外');
+    });
+  });
 }
