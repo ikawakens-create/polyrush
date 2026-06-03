@@ -11,7 +11,6 @@ class BoardPainter extends CustomPainter {
   static const _bg = Color(0xFFF4EFE6);
   static const _cellBorder = Color(0xFF1B2A4A);
   static const _boardEdge = Color(0xFF1B2A4A);
-  static const _goldLine = Color(0xFFC8A24A);
 
   static const _pieceColors = <Color>[
     Color(0xFFE53935), // 赤
@@ -51,24 +50,30 @@ class BoardPainter extends CustomPainter {
       }
     }
 
-    final boardRect = Rect.fromLTWH(
-      geo.boardOrigin.dx,
-      geo.boardOrigin.dy,
-      geo.cols * geo.cellSize,
-      geo.rows * geo.cellSize,
-    );
-
     final edgePaint = Paint()
       ..color = _boardEdge
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
-    canvas.drawRect(boardRect, edgePaint);
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.square;
 
-    final goldPaint = Paint()
-      ..color = _goldLine
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    canvas.drawRect(boardRect.deflate(3.0), goldPaint);
+    for (final cell in puzzle.frame) {
+      final rect = geo.cellRect(cell);
+      final y = cell.$1;
+      final x = cell.$2;
+
+      if (!puzzle.frame.contains((y - 1, x))) {
+        canvas.drawLine(rect.topLeft, rect.topRight, edgePaint);
+      }
+      if (!puzzle.frame.contains((y + 1, x))) {
+        canvas.drawLine(rect.bottomLeft, rect.bottomRight, edgePaint);
+      }
+      if (!puzzle.frame.contains((y, x - 1))) {
+        canvas.drawLine(rect.topLeft, rect.bottomLeft, edgePaint);
+      }
+      if (!puzzle.frame.contains((y, x + 1))) {
+        canvas.drawLine(rect.topRight, rect.bottomRight, edgePaint);
+      }
+    }
   }
 
   @override
