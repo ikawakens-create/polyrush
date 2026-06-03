@@ -7,7 +7,7 @@ import 'package:polyrush/game/board/board_painter.dart';
 class BoardPreviewScreen extends StatelessWidget {
   const BoardPreviewScreen({super.key});
 
-  static const _bg = Color(0xFFFBF7EC);
+  static const _bg = Color(0xFFF4EFE6);
 
   @override
   Widget build(BuildContext context) {
