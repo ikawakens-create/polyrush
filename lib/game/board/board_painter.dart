@@ -9,7 +9,6 @@ class BoardPainter extends CustomPainter {
   final double padding;
 
   static const _bg = Color(0xFFF4EFE6);
-  static const _cellFill = Color(0xFFFCFAF5);
   static const _cellBorder = Color(0xFF1B2A4A);
   static const _boardEdge = Color(0xFF1B2A4A);
   static const _goldLine = Color(0xFFC8A24A);
