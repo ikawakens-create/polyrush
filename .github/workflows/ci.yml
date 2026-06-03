@@ -32,8 +32,12 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug
+      - id: meta
+        run: |
+          echo "date=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
-          name: polyrush-debug-apk
+          name: polyrush-debug-${{ steps.meta.outputs.date }}-${{ steps.meta.outputs.sha }}
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
