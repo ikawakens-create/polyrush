@@ -14,6 +14,14 @@ class BoardPainter extends CustomPainter {
   static const _boardEdge = Color(0xFF1B2A4A);
   static const _goldLine = Color(0xFFC8A24A);
 
+  static const _pieceColors = <Color>[
+    Color(0xFFE53935), // 赤
+    Color(0xFF1E88E5), // 青
+    Color(0xFF43A047), // 緑
+    Color(0xFF8E24AA), // 紫
+    Color(0xFFFDD835), // 黄
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
     final bgPaint = Paint()..color = _bg;
@@ -25,19 +33,23 @@ class BoardPainter extends CustomPainter {
       padding: padding,
     );
 
-    final fillPaint = Paint()
-      ..color = _cellFill
-      ..style = PaintingStyle.fill;
-
     final borderPaint = Paint()
       ..color = _cellBorder
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    for (final cell in puzzle.frame) {
-      final rect = geo.cellRect(cell);
-      canvas.drawRect(rect, fillPaint);
-      canvas.drawRect(rect, borderPaint);
+    for (var i = 0; i < puzzle.blocks.length; i++) {
+      final block = puzzle.blocks[i];
+      final color = _pieceColors[i % _pieceColors.length];
+      final fillPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+
+      for (final cell in block.cells) {
+        final rect = geo.cellRect(cell);
+        canvas.drawRect(rect, fillPaint);
+        canvas.drawRect(rect, borderPaint);
+      }
     }
 
     final boardRect = Rect.fromLTWH(
