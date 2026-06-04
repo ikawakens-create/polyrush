@@ -63,9 +63,14 @@ ls lib/domain/puzzle/
 - `lib/domain/puzzle/difficulty.dart` (Task 3)
 - `lib/domain/puzzle/solver.dart` (Task 4)
 - `lib/domain/puzzle/verified_puzzle_generator.dart` (Task 5)
+- `lib/domain/puzzle/frame_connectivity.dart` (ADR-0009 / PR #45)
+- `lib/domain/puzzle/playable_puzzle_generator.dart` (ADR-0009 / PR #45)
+- `lib/game/board/grid_geometry.dart` (PR #37)
 - `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
 - `pubspec.yaml` (依存変更は別途相談)
+
+※ board_painter.dart / board_preview_screen.dart は候補A（本番プレビュー差し替え）で編集中のため意図的に未追加。候補A完了後に board_painter.dart を追加する。
 
 これらの API を変更する必要が生じた場合:
 1. 作業を停止
