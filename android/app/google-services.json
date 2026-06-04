@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "193233647462",
+    "project_id": "polyrush-bc19f",
+    "storage_bucket": "polyrush-bc19f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193233647462:android:a4b0eaabaf9e75be807aa7",
+        "android_client_info": {
+          "package_name": "com.nallamanam.polyrush"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl05LvJWNX--8oiXki3tTcyPXEQkM2g4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
