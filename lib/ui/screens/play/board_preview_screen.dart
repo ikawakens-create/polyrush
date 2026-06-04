@@ -1,79 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
-import 'package:polyrush/domain/puzzle/verified_puzzle_generator.dart';
+import 'package:polyrush/domain/puzzle/playable_puzzle_generator.dart';
 import 'package:polyrush/game/board/board_painter.dart';
 
-class BoardPreviewScreen extends StatelessWidget {
+class BoardPreviewScreen extends StatefulWidget {
   const BoardPreviewScreen({super.key});
 
+  @override
+  State<BoardPreviewScreen> createState() => _BoardPreviewScreenState();
+}
+
+class _BoardPreviewScreenState extends State<BoardPreviewScreen> {
   static const _bg = Color(0xFFF4EFE6);
 
-  static final _configs = <({Difficulty difficulty, int seed})>[
-    (difficulty: Difficulty.easy, seed: 1),
-    (difficulty: Difficulty.easy, seed: 2),
-    (difficulty: Difficulty.easy, seed: 3),
-    (difficulty: Difficulty.normal, seed: 1),
-    (difficulty: Difficulty.normal, seed: 2),
-    (difficulty: Difficulty.normal, seed: 3),
-    (difficulty: Difficulty.hard, seed: 1),
-    (difficulty: Difficulty.hard, seed: 2),
-    (difficulty: Difficulty.hard, seed: 3),
-  ];
+  Difficulty _difficulty = Difficulty.easy;
+  int _seed = 1;
 
   @override
   Widget build(BuildContext context) {
+    final result = PlayablePuzzleGenerator.generate(
+      difficulty: _difficulty,
+      seed: _seed,
+    );
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _bg,
         elevation: 0,
-        title: const Text('PolyRush（盤ギャラリー）'),
+        title: const Text('PolyRush（本番プレビュー）'),
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 0.85,
-        ),
-        itemCount: _configs.length,
-        itemBuilder: (context, index) {
-          final cfg = _configs[index];
-          final result = VerifiedPuzzleGenerator.generate(
-            difficulty: cfg.difficulty,
-            seed: cfg.seed,
-          );
-          final label = '${cfg.difficulty.name}/seed${cfg.seed}';
-          return Column(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ToggleButtons(
+              isSelected: [
+                _difficulty == Difficulty.easy,
+                _difficulty == Difficulty.normal,
+                _difficulty == Difficulty.hard,
+              ],
+              onPressed: (index) {
+                setState(() {
+                  _difficulty = Difficulty.values[index];
+                  _seed = 1;
+                });
+              },
+              children: const [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Easy'),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Normal'),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('Hard'),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: switch (result) {
-                  Ok(:final value) => CustomPaint(
-                      painter: BoardPainter(
-                        puzzle: value.puzzle,
-                        padding: 8,
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  Err() => const Center(
-                      child: Text(
-                        '失敗',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                },
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _seed > 1 ? () => setState(() => _seed--) : null,
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(fontSize: 10),
-                textAlign: TextAlign.center,
+              Text('seed: $_seed', style: const TextStyle(fontSize: 16)),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => setState(() => _seed++),
               ),
             ],
-          );
-        },
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: switch (result) {
+                Ok(:final value) => CustomPaint(
+                    painter: BoardPainter(
+                      puzzle: value.puzzle,
+                      padding: 16,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                Err(:final error) => Center(
+                    child: Text(
+                      '生成に失敗しました: ${error.name}',
+                      style: const TextStyle(
+                        color: Color(0xFFB71C1C),
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: switch (result) {
+              Ok(:final value) => Text(
+                  '難易度: ${_difficulty.name}  seed: $_seed\n'
+                  '解数: ${value.solutionCount}  試行: ${value.attemptsUsed}  '
+                  'フォールバック: ${value.isFallback}',
+                  style: const TextStyle(fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              Err() => const SizedBox.shrink(),
+            },
+          ),
+        ],
       ),
     );
   }
