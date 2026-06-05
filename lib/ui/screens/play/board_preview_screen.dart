@@ -104,12 +104,24 @@ class _BoardPreviewScreenState extends State<BoardPreviewScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
             child: switch (result) {
-              Ok(:final value) => Text(
-                  '難易度: ${_difficulty.name}  seed: $_seed\n'
-                  '解数: ${value.solutionCount}  試行: ${value.attemptsUsed}  '
-                  'フォールバック: ${value.isFallback}',
-                  style: const TextStyle(fontSize: 13),
-                  textAlign: TextAlign.center,
+              Ok(:final value) => Builder(
+                  builder: (_) {
+                    final bb = value.puzzle.boundingBox;
+                    final w = bb.maxX - bb.minX + 1;
+                    final h = bb.maxY - bb.minY + 1;
+                    final area = w * h;
+                    final cells = value.puzzle.frame.length;
+                    final rate = cells / area * 100;
+                    return Text(
+                      '難易度: ${_difficulty.name}  seed: $_seed\n'
+                      '解数: ${value.solutionCount}  試行: ${value.attemptsUsed}  '
+                      'フォールバック: ${value.isFallback}\n'
+                      '充填率: ${rate.toStringAsFixed(1)}%  '
+                      '($cells / $area マス, 外接 ${w}×${h})',
+                      style: const TextStyle(fontSize: 13),
+                      textAlign: TextAlign.center,
+                    );
+                  },
                 ),
               Err() => const SizedBox.shrink(),
             },
