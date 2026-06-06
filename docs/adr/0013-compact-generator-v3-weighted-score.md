@@ -1,7 +1,7 @@
 # ADR-0013: 重み付きスコア選択によるコンパクト枠生成層 V3 (CompactPuzzleGeneratorV3) の導入
 
 ## Status
-Proposed (2026-06-06)
+Accepted (2026-06-06) — PR #56 で develop にマージ済み
 
 ## Context
 
@@ -66,6 +66,16 @@ Code Web は実行できないため測定は CI テストとして設計する�
 - CI 測定で normal/hard がなお目標に届かない／easy が長方形化して退行する場合は、LAMBDA の再調整、または非線形なペナルティ（外接矩形でなく実外周や凸包など）の検討を別 ADR で行う。まず LAMBDA=0.5 の効果を1点測ってから判断する。
 - 非自明性は別軸（判断6）。
 - 生成層の一本化は目標到達後（判断7）。
+
+## 実測結果（PR #56 / CI、seed=1..300）
+- easy : V2 avg fill 0.73 → V3 0.74。Err=0。
+- normal: V2 avg fill 0.64 → V3 0.68（+4pt）。Err=0。
+- hard : V2 avg fill 0.64 → V3 0.68（+4pt）。Err=0。
+- correctness（解数1〜3・単連結・同形重複なし・isFallback=false）は全難易度で hard assert を通過。
+- LAMBDA は 0.5 を採用。
+- リトライ上限の調整（案B）: 初回 CI で hard/seed=283 が1件だけ qualityNotMet で失敗（V3 Err=1）したため、詰めの強さ（fill 0.68）を保ったまま maxCompactRetries を 8→16 に引き上げ、Err=0 に回復させた。LAMBDA は据え置き。
+- ADR-0012 比の累積成果: easy 0.68→0.74 / normal 0.61→0.68 / hard 0.60→0.68。
+- 判定: 重み付きスコアで normal/hard を +4pt 改善。目標0.72にはあと一歩だが本物ウボンゴ範囲（60〜92%）の平均寄りに到達。これ以上の追い込みは長方形化とのトレードオフになるため、枠品質はいったんここで区切りとする。
 
 ## References
 - docs/SPECIFICATION.md §4.3.2 / §4.3.3 / §14.2

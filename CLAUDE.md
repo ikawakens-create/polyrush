@@ -67,6 +67,7 @@ ls lib/domain/puzzle/
 - `lib/domain/puzzle/playable_puzzle_generator.dart` (ADR-0009 / PR #45)
 - `lib/domain/puzzle/compact_puzzle_generator.dart` (ADR-0010 / PR #50)
 - `lib/domain/puzzle/compact_puzzle_generator_v2.dart`（ADR-0012 / PR #54）— 現在の本番経路。改造禁止。改良は新層を足す。
+- `lib/domain/puzzle/compact_puzzle_generator_v3.dart`（ADR-0013 / PR #56）— 現在の本番経路。改造禁止。改良は新層を足す。
 - `lib/game/board/grid_geometry.dart` (PR #37)
 - `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
