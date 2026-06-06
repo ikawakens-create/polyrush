@@ -166,11 +166,17 @@ class CompactPuzzleGenerator {
       ),
     );
 
+    // 1パズル内で同じ source 形状を2回以上使わないための使用済みID集合。
+    final usedSourceIds = <String>{firstPiece.id};
+
     final blockCount = difficulty.blockCount;
     for (var i = 1; i < blockCount; i++) {
+      final availablePool =
+          pool.where((p) => !usedSourceIds.contains(p.id)).toList();
       var placed = false;
       for (var attempt = 0; attempt < 10; attempt++) {
-        final piece = pool[random.nextInt(pool.length)];
+        if (availablePool.isEmpty) break;
+        final piece = availablePool[random.nextInt(availablePool.length)];
         final orientations = orientationsOf(piece);
         final oriented = orientations[random.nextInt(orientations.length)];
         final candidates =
@@ -193,6 +199,7 @@ class CompactPuzzleGenerator {
         blocks.add(
           PlacedBlock(source: piece, orientation: oriented, cells: chosen),
         );
+        usedSourceIds.add(piece.id);
         placed = true;
         break;
       }
