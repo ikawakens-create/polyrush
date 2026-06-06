@@ -117,7 +117,7 @@ class _BoardPreviewScreenState extends State<BoardPreviewScreen> {
                       '解数: ${value.solutionCount}  試行: ${value.attemptsUsed}  '
                       'フォールバック: ${value.isFallback}\n'
                       '充填率: ${rate.toStringAsFixed(1)}%  '
-                      '($cells / $area マス, 外接 ${w}×${h})',
+                      '($cells / $area マス, 外接 $w×$h)',
                       style: const TextStyle(fontSize: 13),
                       textAlign: TextAlign.center,
                     );
