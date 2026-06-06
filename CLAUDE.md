@@ -65,6 +65,7 @@ ls lib/domain/puzzle/
 - `lib/domain/puzzle/verified_puzzle_generator.dart` (Task 5)
 - `lib/domain/puzzle/frame_connectivity.dart` (ADR-0009 / PR #45)
 - `lib/domain/puzzle/playable_puzzle_generator.dart` (ADR-0009 / PR #45)
+- `lib/domain/puzzle/compact_puzzle_generator.dart` (ADR-0010 / PR #50)
 - `lib/game/board/grid_geometry.dart` (PR #37)
 - `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
