@@ -1,7 +1,7 @@
 # ADR-0012: 充填率を高めるコンパクト枠生成層 V2 (CompactPuzzleGeneratorV2) の導入
 
 ## Status
-Proposed (2026-06-06)
+Accepted (2026-06-06) — PR #54 で develop にマージ済み
 
 ## Context
 
@@ -73,6 +73,13 @@ Code Web 環境は実行できないため効果測定は CI のテストとし�
 - CI 測定で normal/hard の平均充填率がなお72%に届かない場合、タイブレークだけでは不十分なサイン。次手として接触辺数と外接矩形面積を重み付き合成したスコア（contact − λ・bboxArea の最大化）や別メトリクスを別 ADR で検討する。まず本タイブレークの効果を1つだけ測ってから判断する。
 - 非自明性（長い棒・風車状の自明配置）は別軸。判断6 のとおり再観測後に別途検討。
 - 仕様書 §4.3.4（seed 文字列）と実装（seed int）の不整合（Issue #31）はステージ2の課題として保留。
+
+## 実測結果（PR #54 / CI、seed=1..300）
+- easy : OLD avg fill 0.68 → NEW 0.73（目標72%に到達）。Err=0。
+- normal: OLD avg fill 0.61 → NEW 0.64（+3pt、目標未達）。Err=0。
+- hard : OLD avg fill 0.60 → NEW 0.64（+4pt、目標未達）。Err=0。
+- correctness（解数1〜3・単連結・同形重複なし・isFallback=false）は全難易度で hard assert を通過。
+- 判定: タイブレークは全難易度で非退行の改善を確認。easy は卒業。normal/hard は中立・申し送りの「重み付きスコア」を次手（ADR-0013）として実施する。
 
 ## References
 - docs/SPECIFICATION.md §4.3.2 / §4.3.3 / §14.2
