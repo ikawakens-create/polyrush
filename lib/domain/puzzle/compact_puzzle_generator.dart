@@ -168,6 +168,10 @@ class CompactPuzzleGenerator {
         final piece = pool[random.nextInt(pool.length)];
         final orientations = orientationsOf(piece);
         final oriented = orientations[random.nextInt(orientations.length)];
+        // listPlacementCandidates は @visibleForTesting だが、ADR-0010 では
+        // 本番の生成部品として意図的に利用している。将来 puzzle_generator 側で
+        // 正式公開へ格上げする（宿題）。それまでの暫定として警告を抑制する。
+        // ignore: invalid_use_of_visible_for_testing_member
         final candidates =
             PuzzleGenerator.listPlacementCandidates(oriented, placedCells);
 
