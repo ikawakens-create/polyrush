@@ -19,7 +19,7 @@
 /// - 解数検証: countSolutions(limit:4) で 1〜3 を採用、4以上は再生成（ADR-0008/0010）
 /// - 穴検証: isFrameSimplyConnected で単連結を確認（ADR-0009/0010）
 /// - (seed, attempt) からの決定論的サブシード派生（ADR-0008）
-/// - 検証リトライ上限: [maxCompactRetries] = 8
+/// - 検証リトライ上限: [maxCompactRetries] = 16
 /// - フォールバックなし（常に isFallback == false）
 ///
 /// ## 座標系
@@ -62,7 +62,7 @@ class CompactPuzzleGeneratorV3 {
   CompactPuzzleGeneratorV3._();
 
   /// 検証リトライの上限回数（ADR-0010/0013 判断4）。
-  static const int maxCompactRetries = 8;
+  static const int maxCompactRetries = 16;
 
   static const int _solutionCountThreshold = 4;
 
