@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
-import 'package:polyrush/domain/puzzle/playable_puzzle_generator.dart';
+import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
 import 'package:polyrush/game/board/board_painter.dart';
 
 class BoardPreviewScreen extends StatefulWidget {
@@ -19,7 +19,7 @@ class _BoardPreviewScreenState extends State<BoardPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final result = PlayablePuzzleGenerator.generate(
+    final result = CompactPuzzleGenerator.generate(
       difficulty: _difficulty,
       seed: _seed,
     );
