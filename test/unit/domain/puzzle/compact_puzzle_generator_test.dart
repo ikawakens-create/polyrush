@@ -236,4 +236,39 @@ void main() {
       );
     });
   });
+
+  // ─── 6. source 重複なし・dedup 後も Err ゼロ（slow） ────────────────────────
+  //
+  // dedup 制約（同一 source.id を1パズル内で2回以上使わない）の正しさと、
+  // 制約追加後もリトライ予算が足りることを実測する。
+  group('source重複なし・dedup後もErrゼロ', () {
+    for (final difficulty in Difficulty.values) {
+      test('${difficulty.name}: seed=1..500 で source.id 重複なし・Errなし', () {
+        for (var seed = 1; seed <= 500; seed++) {
+          final result = CompactPuzzleGenerator.generate(
+            difficulty: difficulty,
+            seed: seed,
+          );
+          // (B) dedup 後も generate がすべて Ok であること。
+          expect(
+            result,
+            isA<Ok<VerifiedPuzzle, CompactPuzzleError>>(),
+            reason: '${difficulty.name}/seed=$seed: '
+                'dedup 制約追加後も Err が増えていないこと',
+          );
+          if (result is Ok<VerifiedPuzzle, CompactPuzzleError>) {
+            // (A) 各パズル内に source.id の重複がないこと。
+            final ids =
+                result.value.puzzle.blocks.map((b) => b.source.id).toList();
+            expect(
+              ids.toSet().length,
+              equals(ids.length),
+              reason: '${difficulty.name}/seed=$seed: '
+                  'blocks 内の source.id がすべて異なること（重複なし）',
+            );
+          }
+        }
+      }, tags: ['slow']);
+    }
+  });
 }
