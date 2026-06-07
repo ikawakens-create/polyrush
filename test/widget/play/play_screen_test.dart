@@ -1,3 +1,5 @@
+// 配置ロジック（translateCells, placedCellsAt, canPlace）の単体テストは
+// test/unit/game/play/placement_logic_test.dart を参照。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';

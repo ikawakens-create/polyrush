@@ -4,11 +4,12 @@
 /// 1 ファイルの変更で完結させる。
 class FeelConfig {
   const FeelConfig({
-    this.fingerOffset = 48.0,
+    this.fingerOffset = 60.0,
     this.hitboxPad = 16.0,
-    this.pickupScale = 1.08,
+    this.pickupScale = 1.0,
     this.pickupMs = 100,
-    this.returnMs = 150,
+    this.returnMs = 100,
+    this.snapRadius = 0.5,
   });
 
   /// 指の接触点からピースを上方向にずらすピクセル数。
@@ -26,12 +27,17 @@ class FeelConfig {
   /// トレイへ戻るアニメーションの時間（ミリ秒）。
   final int returnMs;
 
+  /// 吸着を許す最大ズレ（セル単位）。
+  /// 離した時、ピース左上の格子からのズレがこの値以内なら吸着する。
+  final double snapRadius;
+
   FeelConfig copyWith({
     double? fingerOffset,
     double? hitboxPad,
     double? pickupScale,
     int? pickupMs,
     int? returnMs,
+    double? snapRadius,
   }) =>
       FeelConfig(
         fingerOffset: fingerOffset ?? this.fingerOffset,
@@ -39,5 +45,6 @@ class FeelConfig {
         pickupScale: pickupScale ?? this.pickupScale,
         pickupMs: pickupMs ?? this.pickupMs,
         returnMs: returnMs ?? this.returnMs,
+        snapRadius: snapRadius ?? this.snapRadius,
       );
 }
