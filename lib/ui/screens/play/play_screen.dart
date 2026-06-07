@@ -472,24 +472,26 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     final touchColF =
         (localPos.dx - geo.boardOrigin.dx) / geo.cellSize + geo.originCol;
 
-    // 全 placed ピースの全セルとの距離を測り、最も近いピースを選ぶ
+    // 全 placed ピースの全セルを正方形（チェビシェフ距離）で判定し最近傍ピースを選ぶ
     int? bestColorIndex;
     double bestDist = double.infinity;
 
     for (final p in _placed) {
       for (final cell in p.cells) {
         // セル中心は (row+0.5, col+0.5)
-        final dr = (cell.$1 + 0.5) - touchRowF;
-        final dc = (cell.$2 + 0.5) - touchColF;
-        final dist = sqrt(dr * dr + dc * dc);
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestColorIndex = p.colorIndex;
+        final dRow = ((cell.$1 + 0.5) - touchRowF).abs();
+        final dCol = ((cell.$2 + 0.5) - touchColF).abs();
+        if (dRow <= _feelConfig.pickupRadius && dCol <= _feelConfig.pickupRadius) {
+          final cheb = max(dRow, dCol);
+          if (cheb < bestDist) {
+            bestDist = cheb;
+            bestColorIndex = p.colorIndex;
+          }
         }
       }
     }
 
-    if (bestColorIndex != null && bestDist <= _feelConfig.pickupRadius) {
+    if (bestColorIndex != null) {
       _pendingPlacedIndex = bestColorIndex;
       _pendingDownGlobal = e.position;
       _boardDragging = false;
@@ -742,8 +744,8 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 label:
                     'pickupRadius  ${_feelConfig.pickupRadius.toStringAsFixed(2)}',
                 value: _feelConfig.pickupRadius,
-                min: 0.3,
-                max: 1.5,
+                min: 0.5,
+                max: 2.5,
                 onChanged: (v) => setState(
                   () => _feelConfig = _feelConfig.copyWith(pickupRadius: v),
                 ),
