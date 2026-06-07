@@ -3,6 +3,7 @@ import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator_v3.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
+import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/verified_puzzle_generator.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';
 import 'package:polyrush/game/play/feel_config.dart';
