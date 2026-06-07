@@ -15,7 +15,7 @@ import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/game/play/placement_logic.dart';
 import 'package:polyrush/ui/screens/play/piece_tray.dart';
 
-/// プレイ画面（Phase 2 PR-C: 配置済みピースの取り出し・置き直し）（ADR-0014）。
+/// プレイ画面（Phase 2 PR-D: 完成判定＋クリア表示＋次へ）（ADR-0014）。
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
 
@@ -24,7 +24,8 @@ class PlayScreen extends StatefulWidget {
 }
 
 class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
-  late final Result<VerifiedPuzzle, CompactPuzzleError> _result;
+  late Result<VerifiedPuzzle, CompactPuzzleError> _result;
+  int _currentSeed = 1;
   FeelConfig _feelConfig = const FeelConfig();
 
   // ドラッグ状態
@@ -53,6 +54,12 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   Offset? _pendingDownGlobal;
   bool _boardDragging = false;
 
+  // クリア状態
+  bool _isCleared = false;
+  double _glowValue = 0.0;
+  AnimationController? _glowCtrl;
+  Animation<double>? _glowAnim;
+
   final GlobalKey _stackKey = GlobalKey();
   final GlobalKey _boardKey = GlobalKey();
 
@@ -69,17 +76,24 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _result = CompactPuzzleGeneratorV3.generate(
-      difficulty: Difficulty.easy,
-      seed: 1,
-    );
+    _loadPuzzle(1);
   }
 
   @override
   void dispose() {
     _pickupCtrl?.dispose();
     _returnCtrl?.dispose();
+    _glowCtrl?.dispose();
     super.dispose();
+  }
+
+  /// パズルを生成して _result と _currentSeed を更新する共通ヘルパー。
+  void _loadPuzzle(int seed) {
+    _currentSeed = seed;
+    _result = CompactPuzzleGeneratorV3.generate(
+      difficulty: Difficulty.easy,
+      seed: seed,
+    );
   }
 
   GridGeometry? _currentGeo(GeneratedPuzzle puzzle) {
@@ -159,6 +173,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     Offset trayItemGlobal,
     GeneratedPuzzle puzzle,
   ) {
+    if (_isCleared) return;
     _beginDrag(index, pointerGlobal, trayItemGlobal, puzzle);
   }
 
@@ -254,6 +269,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
         _ghostCells = const [];
         _ghostValid = false;
       });
+      _checkComplete(puzzle);
       return;
     }
 
@@ -296,10 +312,88 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     _returnCtrl!.forward();
   }
 
+  // ── 完成判定 ─────────────────────────────────────────────────────
+
+  void _checkComplete(GeneratedPuzzle puzzle) {
+    if (_isCleared) return;
+    final placedCells = _placed.map((p) => p.cells).toList();
+    if (isComplete(placedCells, puzzle.frame.toSet())) {
+      _onCleared();
+    }
+  }
+
+  void _onCleared() {
+    if (_isCleared) return;
+    HapticFeedback.mediumImpact();
+
+    _glowCtrl?.dispose();
+    _glowCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _glowAnim = Tween<double>(begin: 1.0, end: 0.0)
+        .animate(CurvedAnimation(parent: _glowCtrl!, curve: Curves.easeOut));
+    _glowAnim!.addListener(() => setState(() => _glowValue = _glowAnim!.value));
+
+    setState(() {
+      _isCleared = true;
+      _glowValue = 1.0;
+    });
+    _glowCtrl!.forward();
+  }
+
+  void _goNext() {
+    final rng = Random();
+    const maxAttempts = 20;
+    int newSeed = _currentSeed;
+    Result<VerifiedPuzzle, CompactPuzzleError>? okResult;
+
+    for (int i = 0; i < maxAttempts; i++) {
+      final candidate = rng.nextInt(1000000) + 1;
+      if (candidate == _currentSeed) continue;
+      final r = CompactPuzzleGeneratorV3.generate(
+        difficulty: Difficulty.easy,
+        seed: candidate,
+      );
+      if (r is Ok<VerifiedPuzzle, CompactPuzzleError>) {
+        newSeed = candidate;
+        okResult = r;
+        break;
+      }
+    }
+
+    _glowCtrl?.stop();
+    _glowCtrl?.dispose();
+    _glowCtrl = null;
+    _glowAnim = null;
+    _pickupCtrl?.stop();
+    _returnCtrl?.stop();
+
+    setState(() {
+      if (okResult != null) {
+        _currentSeed = newSeed;
+        _result = okResult;
+      } else {
+        _result = const Err(CompactPuzzleError.generationFailed);
+      }
+      _placed.clear();
+      _ghostCells = const [];
+      _ghostValid = false;
+      _draggingIndex = null;
+      _dragPosition = null;
+      _dragScale = 1.0;
+      _isCleared = false;
+      _glowValue = 0.0;
+      _pendingPlacedIndex = null;
+      _pendingDownGlobal = null;
+      _boardDragging = false;
+    });
+  }
+
   // ── 盤面ピース掴み処理 ──────────────────────────────────────────
 
   void _onBoardPointerDown(PointerDownEvent e, GeneratedPuzzle puzzle) {
-    if (_draggingIndex != null) return;
+    if (_draggingIndex != null || _isCleared) return;
 
     final boardCtx = _boardKey.currentContext;
     if (boardCtx == null) return;
@@ -431,6 +525,32 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
               cellSize: _cellSize,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearOverlay() {
+    return Positioned.fill(
+      child: ColoredBox(
+        color: Colors.black54,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'クリア！',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _goNext,
+              child: const Text('次へ'),
+            ),
+          ],
         ),
       ),
     );
@@ -603,6 +723,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                           placed: _placed,
                           ghostCells: _ghostCells,
                           ghostValid: _ghostValid,
+                          glow: _glowValue,
                         ),
                         child: const SizedBox.expand(),
                       ),
@@ -625,6 +746,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 ],
               ),
               _buildFloatingPiece(value.puzzle.blocks),
+              if (_isCleared) _buildClearOverlay(),
             ],
           ),
       },

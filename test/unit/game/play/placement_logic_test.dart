@@ -88,4 +88,57 @@ void main() {
       );
     });
   });
+
+  // ─── D. isComplete ──────────────────────────────────────────────
+  group('D. isComplete', () {
+    final frame = {(0, 0), (0, 1), (1, 0), (1, 1)};
+
+    test('配置なし（placed なし）→ false', () {
+      expect(
+        isComplete([], frame),
+        isFalse,
+        reason: 'ピースが1つも置かれていないので false',
+      );
+    });
+
+    test('frame の一部だけ埋まっている → false', () {
+      expect(
+        isComplete(
+          [
+            [(0, 0), (0, 1)],
+          ],
+          frame,
+        ),
+        isFalse,
+        reason: '(1,0) と (1,1) が空いている',
+      );
+    });
+
+    test('frame をちょうど全部埋める複数ピース → true', () {
+      expect(
+        isComplete(
+          [
+            [(0, 0), (0, 1)],
+            [(1, 0), (1, 1)],
+          ],
+          frame,
+        ),
+        isTrue,
+        reason: '2 ピースで frame 全体を過不足なく埋める',
+      );
+    });
+
+    test('frame と同数だが配置がずれて一致しない → false', () {
+      expect(
+        isComplete(
+          [
+            [(0, 0), (0, 1), (1, 0), (2, 0)],
+          ],
+          frame,
+        ),
+        isFalse,
+        reason: '(2,0) が frame に含まれないため不一致',
+      );
+    });
+  });
 }
