@@ -63,13 +63,15 @@ class PiecePainter extends CustomPainter {
 ///
 /// [Listener] でポインタイベントを拾い、掴み・追従・離しを
 /// コールバック経由で [PieceTray] → [PlayScreen] へ通知する。
-class _TrayItem extends StatelessWidget {
+/// [dragStartSlop] 以上ポインタが動いた時点で初めて掴み開始とみなす。
+class _TrayItem extends StatefulWidget {
   const _TrayItem({
     super.key,
     required this.block,
     required this.colorIndex,
     required this.hitboxPad,
     required this.trayCell,
+    required this.dragStartSlop,
     required this.onPickup,
     required this.onMove,
     required this.onDrop,
@@ -79,41 +81,74 @@ class _TrayItem extends StatelessWidget {
   final int colorIndex;
   final double hitboxPad;
   final double trayCell;
+  final double dragStartSlop;
   final void Function(Offset pointerGlobal, Offset itemGlobal) onPickup;
   final void Function(Offset pointerGlobal) onMove;
   final void Function(Offset pointerGlobal) onDrop;
 
   @override
+  State<_TrayItem> createState() => _TrayItemState();
+}
+
+class _TrayItemState extends State<_TrayItem> {
+  Offset? _downPosition;
+  bool _dragging = false;
+
+  void _reset() {
+    _downPosition = null;
+    _dragging = false;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cells = block.orientation.cells;
+    final cells = widget.block.orientation.cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
     final maxX = cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
 
-    final pieceW = (maxX - minX + 1) * trayCell;
-    final pieceH = (maxY - minY + 1) * trayCell;
+    final pieceW = (maxX - minX + 1) * widget.trayCell;
+    final pieceH = (maxY - minY + 1) * widget.trayCell;
 
     return Listener(
       onPointerDown: (e) {
-        final box = context.findRenderObject() as RenderBox;
-        // Listener の外辺は hitboxPad ぶん広いので CustomPaint の中心を正確に計算する
-        final itemCenter = box.localToGlobal(
-          Offset(hitboxPad + pieceW / 2, hitboxPad + pieceH / 2),
-        );
-        onPickup(e.position, itemCenter);
+        _downPosition = e.position;
+        _dragging = false;
       },
-      onPointerMove: (e) => onMove(e.position),
-      onPointerUp: (e) => onDrop(e.position),
-      onPointerCancel: (e) => onDrop(e.position),
+      onPointerMove: (e) {
+        if (_dragging) {
+          widget.onMove(e.position);
+          return;
+        }
+        final down = _downPosition;
+        if (down == null) return;
+        final dist = (e.position - down).distance;
+        if (dist >= widget.dragStartSlop) {
+          _dragging = true;
+          final box = context.findRenderObject() as RenderBox;
+          // Listener の外辺は hitboxPad ぶん広いので CustomPaint の中心を正確に計算する
+          final itemCenter = box.localToGlobal(
+            Offset(widget.hitboxPad + pieceW / 2, widget.hitboxPad + pieceH / 2),
+          );
+          widget.onPickup(e.position, itemCenter);
+        }
+      },
+      onPointerUp: (e) {
+        if (_dragging) widget.onDrop(e.position);
+        _reset();
+      },
+      onPointerCancel: (e) {
+        if (_dragging) widget.onDrop(e.position);
+        _reset();
+      },
       child: Padding(
-        padding: EdgeInsets.all(hitboxPad),
+        padding: EdgeInsets.all(widget.hitboxPad),
         child: CustomPaint(
           size: Size(pieceW, pieceH),
           painter: PiecePainter(
-            block: block,
-            colorIndex: colorIndex,
-            cellSize: trayCell,
+            block: widget.block,
+            colorIndex: widget.colorIndex,
+            cellSize: widget.trayCell,
           ),
         ),
       ),
@@ -172,6 +207,7 @@ class PieceTray extends StatelessWidget {
                         colorIndex: i,
                         hitboxPad: feelConfig.hitboxPad,
                         trayCell: _trayCell,
+                        dragStartSlop: feelConfig.dragStartSlop,
                         onPickup: (pointerGlobal, itemGlobal) =>
                             onPickup(i, pointerGlobal, itemGlobal),
                         onMove: onMove,
