@@ -14,6 +14,7 @@ class PlayBoardPainter extends CustomPainter {
     this.placed = const [],
     this.ghostCells = const [],
     this.ghostValid = false,
+    this.glow = 0.0,
   });
 
   final GeneratedPuzzle puzzle;
@@ -27,6 +28,9 @@ class PlayBoardPainter extends CustomPainter {
 
   /// ゴーストが有効位置（frame 内かつ未占有）なら true。
   final bool ghostValid;
+
+  /// クリア時の発光強度（0.0〜1.0）。0 より大きい間は frame 全体に白を重ねる。
+  final double glow;
 
   static const _bg = Color(0xFFF4EFE6);
   static const _slotFill = Color(0xFFDDD8CC);
@@ -91,6 +95,15 @@ class PlayBoardPainter extends CustomPainter {
       }
     }
 
+    // クリア発光オーバーレイ
+    if (glow > 0) {
+      final alpha = (glow * 0.5 * 255).round().clamp(0, 255);
+      final glowPaint = Paint()..color = Color.fromARGB(alpha, 255, 255, 255);
+      for (final cell in puzzle.frame) {
+        canvas.drawRect(geo.cellRect(cell), glowPaint);
+      }
+    }
+
     // 外周線
     final edgePaint = Paint()
       ..color = _edgeStroke
@@ -123,5 +136,6 @@ class PlayBoardPainter extends CustomPainter {
       old.puzzle != puzzle ||
       old.placed != placed ||
       old.ghostCells != ghostCells ||
-      old.ghostValid != ghostValid;
+      old.ghostValid != ghostValid ||
+      old.glow != glow;
 }

@@ -1,8 +1,10 @@
-// 配置ロジック（translateCells, placedCellsAt, canPlace）の単体テストは
+// 配置ロジック（translateCells, placedCellsAt, canPlace, isComplete）の単体テストは
 // test/unit/game/play/placement_logic_test.dart を参照。
 //
 // 配置済みピースの掴み・置き直しはピクセル/ジオメトリ依存で widget テストでは
 // 不安定なため、ロジック面の正しさは placement_logic_test で担保する。
+// クリア成立（isComplete が true になる瞬間）も同様にピクセル依存のため
+// placement_logic_test の isComplete グループで担保する。
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';
@@ -48,6 +50,16 @@ void main() {
           painters.any((w) => w.painter is PlayBoardPainter),
           isTrue,
           reason: 'PlayBoardPainter が CustomPaint として存在する',
+        );
+      });
+
+      testWidgets('初期状態でクリアオーバーレイが表示されない', (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
+        // クリア判定の成立は placement_logic_test の isComplete グループで担保する。
+        expect(
+          find.text('クリア！'),
+          findsNothing,
+          reason: '初期状態（ピース未配置）ではクリアオーバーレイが存在しない',
         );
       });
     });
