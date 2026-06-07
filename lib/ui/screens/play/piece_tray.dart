@@ -63,7 +63,11 @@ class PiecePainter extends CustomPainter {
 ///
 /// [Listener] でポインタイベントを拾い、掴み・追従・離しを
 /// コールバック経由で [PieceTray] → [PlayScreen] へ通知する。
-/// [dragStartSlop] 以上ポインタが動いた時点で初めて掴み開始とみなす。
+/// [dragStartSlop] 以上ポインタが動いた時点で方向を判定する:
+///   上方向 → 掴み開始（onPickup）
+///   横方向・下方向 → このジェスチャをスクロールに委譲し掴みは発火しない。
+/// Listener はジェスチャアリーナに参加しないため、委譲時も親の
+/// SingleChildScrollView が横スクロールを受け取れる。
 class _TrayItem extends StatefulWidget {
   const _TrayItem({
     super.key,
@@ -72,6 +76,7 @@ class _TrayItem extends StatefulWidget {
     required this.hitboxPad,
     required this.trayCell,
     required this.dragStartSlop,
+    required this.grabDirectionRatio,
     required this.onPickup,
     required this.onMove,
     required this.onDrop,
@@ -82,6 +87,10 @@ class _TrayItem extends StatefulWidget {
   final double hitboxPad;
   final double trayCell;
   final double dragStartSlop;
+
+  /// 掴みと判定する縦横比しきい値（FeelConfig.grabDirectionRatio から渡す）。
+  final double grabDirectionRatio;
+
   final void Function(Offset pointerGlobal, Offset itemGlobal) onPickup;
   final void Function(Offset pointerGlobal) onMove;
   final void Function(Offset pointerGlobal) onDrop;
@@ -94,9 +103,13 @@ class _TrayItemState extends State<_TrayItem> {
   Offset? _downPosition;
   bool _dragging = false;
 
+  /// true のとき、このジェスチャはスクロールに委譲済み（掴みは発火しない）。
+  bool _scrollDelegated = false;
+
   void _reset() {
     _downPosition = null;
     _dragging = false;
+    _scrollDelegated = false;
   }
 
   @override
@@ -114,23 +127,41 @@ class _TrayItemState extends State<_TrayItem> {
       onPointerDown: (e) {
         _downPosition = e.position;
         _dragging = false;
+        _scrollDelegated = false;
       },
       onPointerMove: (e) {
         if (_dragging) {
           widget.onMove(e.position);
           return;
         }
+        // スクロール委譲済みなら何もしない（親 ScrollView が受け取る）
+        if (_scrollDelegated) return;
+
         final down = _downPosition;
         if (down == null) return;
-        final dist = (e.position - down).distance;
-        if (dist >= widget.dragStartSlop) {
+        final d = e.position - down;
+        if (d.distance < widget.dragStartSlop) return;
+
+        // slop 超え → 方向で掴みかスクロールかを決定する
+        // 画面座標は下が正のため、上方向は dy が負 → dyUp を正に反転
+        final dyUp = -d.dy;
+        final dxAbs = d.dx.abs();
+
+        if (dyUp > 0 && dyUp >= dxAbs * widget.grabDirectionRatio) {
+          // 上方向の動き → 掴み開始
           _dragging = true;
           final box = context.findRenderObject() as RenderBox;
           // Listener の外辺は hitboxPad ぶん広いので CustomPaint の中心を正確に計算する
           final itemCenter = box.localToGlobal(
-            Offset(widget.hitboxPad + pieceW / 2, widget.hitboxPad + pieceH / 2),
+            Offset(
+              widget.hitboxPad + pieceW / 2,
+              widget.hitboxPad + pieceH / 2,
+            ),
           );
           widget.onPickup(e.position, itemCenter);
+        } else {
+          // 横方向・下方向 → スクロールに委譲（以後このジェスチャでは掴まない）
+          _scrollDelegated = true;
         }
       },
       onPointerUp: (e) {
@@ -208,6 +239,7 @@ class PieceTray extends StatelessWidget {
                         hitboxPad: feelConfig.hitboxPad,
                         trayCell: _trayCell,
                         dragStartSlop: feelConfig.dragStartSlop,
+                        grabDirectionRatio: feelConfig.grabDirectionRatio,
                         onPickup: (pointerGlobal, itemGlobal) =>
                             onPickup(i, pointerGlobal, itemGlobal),
                         onMove: onMove,

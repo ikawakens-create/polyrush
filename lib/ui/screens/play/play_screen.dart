@@ -26,6 +26,7 @@ class PlayScreen extends StatefulWidget {
 class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   late Result<VerifiedPuzzle, CompactPuzzleError> _result;
   int _currentSeed = 1;
+  Difficulty _difficulty = Difficulty.easy;
   FeelConfig _feelConfig = const FeelConfig();
 
   // ドラッグ状態
@@ -94,9 +95,39 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   void _loadPuzzle(int seed) {
     _currentSeed = seed;
     _result = CompactPuzzleGeneratorV3.generate(
-      difficulty: Difficulty.easy,
+      difficulty: _difficulty,
       seed: seed,
     );
+  }
+
+  /// 難易度を変更してパズルをリセットする。
+  void _changeDifficulty(Difficulty d) {
+    _glowCtrl?.stop();
+    _glowCtrl?.dispose();
+    _glowCtrl = null;
+    _glowAnim = null;
+    _clearOverlayCtrl?.stop();
+    _clearOverlayCtrl?.dispose();
+    _clearOverlayCtrl = null;
+    _clearScaleAnim = null;
+    _pickupCtrl?.stop();
+    _returnCtrl?.stop();
+
+    setState(() {
+      _difficulty = d;
+      _loadPuzzle(1);
+      _placed.clear();
+      _ghostCells = const [];
+      _ghostValid = false;
+      _draggingIndex = null;
+      _dragPosition = null;
+      _dragScale = 1.0;
+      _isCleared = false;
+      _glowValue = 0.0;
+      _pendingPlacedIndex = null;
+      _pendingDownGlobal = null;
+      _boardDragging = false;
+    });
   }
 
   GridGeometry? _currentGeo(GeneratedPuzzle puzzle) {
@@ -727,6 +758,18 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                   () => _feelConfig = _feelConfig.copyWith(dragStartSlop: v),
                 ),
               ),
+              _settingsSlider(
+                setModalState,
+                label:
+                    'grabDirectionRatio  ${_feelConfig.grabDirectionRatio.toStringAsFixed(2)}',
+                value: _feelConfig.grabDirectionRatio,
+                min: 0.3,
+                max: 2.5,
+                onChanged: (v) => setState(
+                  () =>
+                      _feelConfig = _feelConfig.copyWith(grabDirectionRatio: v),
+                ),
+              ),
             ],
           ),
         ),
@@ -767,6 +810,23 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
         elevation: 0,
         title: const Text('PolyRush（プレイ）'),
         actions: [
+          PopupMenuButton<Difficulty>(
+            tooltip: '難易度',
+            initialValue: _difficulty,
+            onSelected: _changeDifficulty,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: Difficulty.easy, child: Text('easy')),
+              PopupMenuItem(value: Difficulty.normal, child: Text('normal')),
+              PopupMenuItem(value: Difficulty.hard, child: Text('hard')),
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                _difficulty.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => _openSettingsPanel(context),
