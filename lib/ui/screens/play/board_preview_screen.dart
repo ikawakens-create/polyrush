@@ -3,6 +3,7 @@ import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
 import 'package:polyrush/game/board/board_painter.dart';
+import 'package:polyrush/ui/screens/play/play_screen.dart';
 
 class BoardPreviewScreen extends StatefulWidget {
   const BoardPreviewScreen({super.key});
@@ -30,6 +31,15 @@ class _BoardPreviewScreenState extends State<BoardPreviewScreen> {
         backgroundColor: _bg,
         elevation: 0,
         title: const Text('PolyRush（本番プレビュー）'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const PlayScreen()),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
