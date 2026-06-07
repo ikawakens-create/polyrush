@@ -87,6 +87,63 @@ void main() {
       });
     });
 
+    group('D. 方向ジェスチャ判定（トレイ）', () {
+      // 掴まれた状態の検出方法:
+      //   _TrayItem は Listener > Padding > CustomPaint を持つ。
+      //   掴まれると hiddenIndices に入り SizedBox（子なし）に置き換わるため、
+      //   find.descendant(of: piece0, matching: find.byType(CustomPaint)) で
+      //   findsOneWidget → 未掴み / findsNothing → 掴み中 を区別できる。
+      testWidgets('純横移動（slop 超え）ではトレイピースが掴まれない', (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
+
+        final piece0 = find.byKey(const ValueKey('tray-piece-0'));
+        expect(piece0, findsOneWidget);
+
+        final center = tester.getCenter(piece0);
+        final gesture = await tester.startGesture(center);
+        // 純粋な横移動（slop=8px の 12 倍以上）
+        await gesture.moveBy(const Offset(100, 0));
+        await tester.pump();
+
+        // 掴まれていないので tray-piece-0 の CustomPaint がまだある
+        expect(
+          find.descendant(of: piece0, matching: find.byType(CustomPaint)),
+          findsOneWidget,
+          reason: '横移動では onPickup が発火せずピース描画が残る',
+        );
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('主に上方向の移動（slop 超え）ではトレイピースが掴まれる', (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
+
+        final piece0 = find.byKey(const ValueKey('tray-piece-0'));
+        expect(piece0, findsOneWidget);
+
+        final center = tester.getCenter(piece0);
+        final gesture = await tester.startGesture(center);
+        // 純粋な上移動（slop の 20 倍以上）
+        await gesture.moveBy(const Offset(0, -160));
+        await tester.pump();
+
+        // 掴まれたので tray-piece-0 は SizedBox になり CustomPaint が消えている
+        expect(
+          find.descendant(of: piece0, matching: find.byType(CustomPaint)),
+          findsNothing,
+          reason: '上移動では onPickup が発火しトレイ上の描画が消える',
+        );
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        // 離した後はトレイへ戻ってくる
+        expect(piece0, findsOneWidget);
+      });
+    });
+
     group('C. タップ誤操作防止（dragStartSlop）', () {
       testWidgets('トレイピースへのタップ（微小移動）では掴まない', (tester) async {
         await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
