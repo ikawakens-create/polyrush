@@ -15,7 +15,7 @@ import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/game/play/placement_logic.dart';
 import 'package:polyrush/ui/screens/play/piece_tray.dart';
 
-/// プレイ画面（Phase 2 PR-B: ゴースト着地プレビュー＋吸着＋配置）（ADR-0014）。
+/// プレイ画面（Phase 2 PR-C: 配置済みピースの取り出し・置き直し）（ADR-0014）。
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
 
@@ -47,6 +47,11 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   Animation<double>? _scaleAnim;
   Animation<Offset>? _returnPosAnim;
   Animation<double>? _returnScaleAnim;
+
+  // 盤面ピース掴み待機状態（押下してまだ slop 未満）
+  int? _pendingPlacedIndex;
+  Offset? _pendingDownGlobal;
+  bool _boardDragging = false;
 
   final GlobalKey _stackKey = GlobalKey();
   final GlobalKey _boardKey = GlobalKey();
@@ -90,16 +95,37 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _onPickup(
-    int index,
+  /// トレイ上の指定 index のアイテム中心 global 座標を取得する。
+  Offset? _trayItemCenter(int colorIndex) {
+    final key = ValueKey('tray-piece-$colorIndex');
+    // WidgetsBinding から Element を探す
+    Offset? result;
+    void visitor(Element element) {
+      if (element.widget.key == key) {
+        final box = element.renderObject as RenderBox?;
+        if (box != null && box.hasSize) {
+          result = box.localToGlobal(box.size.center(Offset.zero));
+        }
+        return;
+      }
+      element.visitChildren(visitor);
+    }
+    if (mounted) {
+      WidgetsBinding.instance.rootElement?.visitChildren(visitor);
+    }
+    return result;
+  }
+
+  /// ドラッグ開始共通処理。トレイからも盤面からも呼ぶ。
+  void _beginDrag(
+    int colorIndex,
     Offset pointerGlobal,
-    Offset trayItemGlobal,
+    Offset trayCenterGlobal,
     GeneratedPuzzle puzzle,
   ) {
     _returnCtrl?.stop();
     _pickupCtrl?.dispose();
 
-    // セルサイズを盤面ジオメトリから取得
     final geo = _currentGeo(puzzle);
     if (geo != null) {
       _cellSize = geo.cellSize;
@@ -116,15 +142,24 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     );
 
     setState(() {
-      _draggingIndex = index;
+      _draggingIndex = colorIndex;
       _dragPosition = pointerGlobal;
-      _trayItemGlobal = trayItemGlobal;
+      _trayItemGlobal = trayCenterGlobal;
       _dragScale = 1.0;
       _ghostCells = const [];
       _ghostValid = false;
     });
 
     _pickupCtrl!.forward();
+  }
+
+  void _onPickup(
+    int index,
+    Offset pointerGlobal,
+    Offset trayItemGlobal,
+    GeneratedPuzzle puzzle,
+  ) {
+    _beginDrag(index, pointerGlobal, trayItemGlobal, puzzle);
   }
 
   void _onMove(Offset pointerGlobal, GeneratedPuzzle puzzle) {
@@ -261,6 +296,89 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     _returnCtrl!.forward();
   }
 
+  // ── 盤面ピース掴み処理 ──────────────────────────────────────────
+
+  void _onBoardPointerDown(PointerDownEvent e, GeneratedPuzzle puzzle) {
+    if (_draggingIndex != null) return;
+
+    final boardCtx = _boardKey.currentContext;
+    if (boardCtx == null) return;
+    final boardBox = boardCtx.findRenderObject() as RenderBox?;
+    if (boardBox == null) return;
+
+    final geo = _currentGeo(puzzle);
+    if (geo == null) return;
+
+    final localPos = boardBox.globalToLocal(e.position);
+    final cell = geo.pixelToCell(localPos);
+    if (cell == null) return;
+
+    // 押下セルがどの配置済みピースに含まれるか探す
+    for (final p in _placed) {
+      if (p.cells.contains(cell)) {
+        _pendingPlacedIndex = p.colorIndex;
+        _pendingDownGlobal = e.position;
+        _boardDragging = false;
+        return;
+      }
+    }
+  }
+
+  void _onBoardPointerMove(PointerMoveEvent e, GeneratedPuzzle puzzle) {
+    // すでにトレイドラッグ中なら盤面側は何もしない
+    if (_draggingIndex != null && !_boardDragging) return;
+
+    if (_boardDragging) {
+      _onMove(e.position, puzzle);
+      return;
+    }
+
+    final pending = _pendingPlacedIndex;
+    final down = _pendingDownGlobal;
+    if (pending == null || down == null) return;
+
+    final dist = (e.position - down).distance;
+    if (dist >= _feelConfig.dragStartSlop) {
+      // slop 超え → 盤面から外して浮かせる
+      _boardDragging = true;
+
+      _placed.removeWhere((p) => p.colorIndex == pending);
+
+      // 元のトレイ位置を取得
+      final trayCenter = _trayItemCenter(pending);
+      // トレイ中心が取れない場合は画面下端あたりへフォールバック
+      final fallback = Offset(
+        MediaQuery.of(context).size.width / 2,
+        MediaQuery.of(context).size.height * 0.85,
+      );
+
+      _pendingPlacedIndex = null;
+      _pendingDownGlobal = null;
+
+      _beginDrag(pending, e.position, trayCenter ?? fallback, puzzle);
+    }
+  }
+
+  void _onBoardPointerUp(PointerUpEvent e, GeneratedPuzzle puzzle) {
+    if (_boardDragging) {
+      _boardDragging = false;
+      _onDrop(e.position, puzzle);
+    }
+    _pendingPlacedIndex = null;
+    _pendingDownGlobal = null;
+  }
+
+  void _onBoardPointerCancel(PointerCancelEvent e, GeneratedPuzzle puzzle) {
+    if (_boardDragging) {
+      _boardDragging = false;
+      _onDrop(e.position, puzzle);
+    }
+    _pendingPlacedIndex = null;
+    _pendingDownGlobal = null;
+  }
+
+  // ── 描画 ─────────────────────────────────────────────────────────
+
   Offset? _floatingPieceOffset(PlacedBlock block) {
     if (_dragPosition == null) return null;
     final ctx = _stackKey.currentContext;
@@ -395,6 +513,16 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                   () => _feelConfig = _feelConfig.copyWith(snapRadius: v),
                 ),
               ),
+              _settingsSlider(
+                setModalState,
+                label: 'dragStartSlop  ${_feelConfig.dragStartSlop.round()}px',
+                value: _feelConfig.dragStartSlop,
+                min: 0,
+                max: 24,
+                onChanged: (v) => setState(
+                  () => _feelConfig = _feelConfig.copyWith(dragStartSlop: v),
+                ),
+              ),
             ],
           ),
         ),
@@ -459,15 +587,25 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 children: [
                   Expanded(
                     flex: 6,
-                    child: CustomPaint(
-                      key: _boardKey,
-                      painter: PlayBoardPainter(
-                        puzzle: value.puzzle,
-                        placed: _placed,
-                        ghostCells: _ghostCells,
-                        ghostValid: _ghostValid,
+                    child: Listener(
+                      onPointerDown: (e) =>
+                          _onBoardPointerDown(e, value.puzzle),
+                      onPointerMove: (e) =>
+                          _onBoardPointerMove(e, value.puzzle),
+                      onPointerUp: (e) =>
+                          _onBoardPointerUp(e, value.puzzle),
+                      onPointerCancel: (e) =>
+                          _onBoardPointerCancel(e, value.puzzle),
+                      child: CustomPaint(
+                        key: _boardKey,
+                        painter: PlayBoardPainter(
+                          puzzle: value.puzzle,
+                          placed: _placed,
+                          ghostCells: _ghostCells,
+                          ghostValid: _ghostValid,
+                        ),
+                        child: const SizedBox.expand(),
                       ),
-                      child: const SizedBox.expand(),
                     ),
                   ),
                   Expanded(

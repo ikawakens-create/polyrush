@@ -10,6 +10,7 @@ class FeelConfig {
     this.pickupMs = 100,
     this.returnMs = 100,
     this.snapRadius = 0.5,
+    this.dragStartSlop = 8.0,
   });
 
   /// 指の接触点からピースを上方向にずらすピクセル数。
@@ -31,6 +32,9 @@ class FeelConfig {
   /// 離した時、ピース左上の格子からのズレがこの値以内なら吸着する。
   final double snapRadius;
 
+  /// この距離以上ポインタが動いて初めて掴み開始とみなす（タップ誤操作で外れるのを防ぐ）。
+  final double dragStartSlop;
+
   FeelConfig copyWith({
     double? fingerOffset,
     double? hitboxPad,
@@ -38,6 +42,7 @@ class FeelConfig {
     int? pickupMs,
     int? returnMs,
     double? snapRadius,
+    double? dragStartSlop,
   }) =>
       FeelConfig(
         fingerOffset: fingerOffset ?? this.fingerOffset,
@@ -46,5 +51,6 @@ class FeelConfig {
         pickupMs: pickupMs ?? this.pickupMs,
         returnMs: returnMs ?? this.returnMs,
         snapRadius: snapRadius ?? this.snapRadius,
+        dragStartSlop: dragStartSlop ?? this.dragStartSlop,
       );
 }
