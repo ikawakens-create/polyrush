@@ -177,6 +177,7 @@ class PieceTray extends StatelessWidget {
                         onMove: onMove,
                         onDrop: onDrop,
                       ),
+              ),
           ],
         ),
       ),

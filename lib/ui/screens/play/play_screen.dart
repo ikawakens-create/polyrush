@@ -54,6 +54,13 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   Set<Cell> get _occupied =>
       _placed.expand((p) => p.cells).toSet();
 
+  Set<int> _buildHiddenIndices() {
+    final hidden = <int>{};
+    if (_draggingIndex != null) hidden.add(_draggingIndex!);
+    hidden.addAll(_placed.map((p) => p.colorIndex));
+    return hidden;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,35 +141,40 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     final geo = _currentGeo(puzzle);
     if (geo == null) return;
 
+    final stackCtx = _stackKey.currentContext;
+    if (stackCtx == null) return;
+    final stackBox = stackCtx.findRenderObject() as RenderBox?;
+    if (stackBox == null) return;
+
     final boardCtx = _boardKey.currentContext;
     if (boardCtx == null) return;
     final boardBox = boardCtx.findRenderObject() as RenderBox?;
     if (boardBox == null) return;
 
-    final boardLocal = boardBox.globalToLocal(pointerGlobal);
-
-    // ポインタが指すセル（指オフセットを考慮）
-    final adjustedLocal = Offset(
-      boardLocal.dx,
-      boardLocal.dy - _feelConfig.fingerOffset,
-    );
-
     final block = puzzle.blocks[index];
     final cells = block.orientation.cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-    final pieceW = (cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b) - minX + 1) * geo.cellSize;
-    final pieceH = (cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b) - minY + 1) * geo.cellSize;
+    final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
+    final maxX = cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
+    final pieceW = (maxX - minX + 1) * _cellSize;
+    final pieceH = (maxY - minY + 1) * _cellSize;
 
-    // ピース左上のピクセル座標（盤面ローカル）
-    final pieceTL = Offset(
-      adjustedLocal.dx - pieceW / 2,
-      adjustedLocal.dy - pieceH / 2,
+    // _floatingPieceOffset と同じ式でスタックローカルのピース左上を計算し、
+    // グローバル→盤面ローカルへ変換して fingerOffset の二重適用を防ぐ。
+    final stackLocal = stackBox.globalToLocal(pointerGlobal);
+    final stackLocalTL = Offset(
+      stackLocal.dx - pieceW / 2,
+      stackLocal.dy - _feelConfig.fingerOffset - pieceH / 2,
     );
+    final globalTL = stackBox.localToGlobal(stackLocalTL);
+    final pieceTL = boardBox.globalToLocal(globalTL);
 
     // 左上セルの格子からのズレを計算してスナップ
-    final rawColF = (pieceTL.dx - geo.boardOrigin.dx) / geo.cellSize + geo.originCol;
-    final rawRowF = (pieceTL.dy - geo.boardOrigin.dy) / geo.cellSize + geo.originRow;
+    final rawColF =
+        (pieceTL.dx - geo.boardOrigin.dx) / geo.cellSize + geo.originCol;
+    final rawRowF =
+        (pieceTL.dy - geo.boardOrigin.dy) / geo.cellSize + geo.originRow;
 
     final snapCol = rawColF.round();
     final snapRow = rawRowF.round();
@@ -463,10 +475,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                     child: PieceTray(
                       puzzle: value.puzzle,
                       feelConfig: _feelConfig,
-                      hiddenIndices: {
-                        if (_draggingIndex != null) _draggingIndex!,
-                        ..._placed.map((p) => p.colorIndex),
-                      },
+                      hiddenIndices: _buildHiddenIndices(),
                       onPickup: (index, pointerGlobal, itemGlobal) =>
                           _onPickup(index, pointerGlobal, itemGlobal, value.puzzle),
                       onMove: (pointerGlobal) =>
