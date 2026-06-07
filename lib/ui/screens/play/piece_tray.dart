@@ -124,6 +124,7 @@ class _TrayItem extends StatelessWidget {
 /// ピースを横並びで表示するトレイ。
 ///
 /// 各ピースをサムネイルサイズで描き、掴み・追従・離しを [PlayScreen] へ通知する。
+/// [hiddenIndices] に含まれるピースは非表示（配置済みまたはドラッグ中）。
 class PieceTray extends StatelessWidget {
   const PieceTray({
     super.key,
@@ -132,6 +133,7 @@ class PieceTray extends StatelessWidget {
     required this.onPickup,
     required this.onMove,
     required this.onDrop,
+    this.hiddenIndices = const {},
   });
 
   final GeneratedPuzzle puzzle;
@@ -140,6 +142,9 @@ class PieceTray extends StatelessWidget {
       onPickup;
   final void Function(Offset pointerGlobal) onMove;
   final void Function(Offset pointerGlobal) onDrop;
+
+  /// 非表示にするピースのインデックス集合（配置済み・ドラッグ中）。
+  final Set<int> hiddenIndices;
 
   static const double _trayCell = 28.0;
 
@@ -155,21 +160,41 @@ class PieceTray extends StatelessWidget {
             for (var i = 0; i < puzzle.blocks.length; i++)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _TrayItem(
-                  key: ValueKey('tray-piece-$i'),
-                  block: puzzle.blocks[i],
-                  colorIndex: i,
-                  hitboxPad: feelConfig.hitboxPad,
-                  trayCell: _trayCell,
-                  onPickup: (pointerGlobal, itemGlobal) =>
-                      onPickup(i, pointerGlobal, itemGlobal),
-                  onMove: onMove,
-                  onDrop: onDrop,
-                ),
+                child: hiddenIndices.contains(i)
+                    ? SizedBox(
+                        key: ValueKey('tray-piece-$i'),
+                        width: _trayItemWidth(puzzle.blocks[i]),
+                        height: _trayItemHeight(puzzle.blocks[i]),
+                      )
+                    : _TrayItem(
+                        key: ValueKey('tray-piece-$i'),
+                        block: puzzle.blocks[i],
+                        colorIndex: i,
+                        hitboxPad: feelConfig.hitboxPad,
+                        trayCell: _trayCell,
+                        onPickup: (pointerGlobal, itemGlobal) =>
+                            onPickup(i, pointerGlobal, itemGlobal),
+                        onMove: onMove,
+                        onDrop: onDrop,
+                      ),
               ),
           ],
         ),
       ),
     );
+  }
+
+  double _trayItemWidth(PlacedBlock block) {
+    final cells = block.orientation.cells;
+    final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+    final maxX = cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
+    return (maxX - minX + 1) * _trayCell + feelConfig.hitboxPad * 2;
+  }
+
+  double _trayItemHeight(PlacedBlock block) {
+    final cells = block.orientation.cells;
+    final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+    final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
+    return (maxY - minY + 1) * _trayCell + feelConfig.hitboxPad * 2;
   }
 }
