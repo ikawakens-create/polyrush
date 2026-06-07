@@ -59,6 +59,8 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   double _glowValue = 0.0;
   AnimationController? _glowCtrl;
   Animation<double>? _glowAnim;
+  AnimationController? _clearOverlayCtrl;
+  Animation<double>? _clearScaleAnim;
 
   final GlobalKey _stackKey = GlobalKey();
   final GlobalKey _boardKey = GlobalKey();
@@ -84,6 +86,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     _pickupCtrl?.dispose();
     _returnCtrl?.dispose();
     _glowCtrl?.dispose();
+    _clearOverlayCtrl?.dispose();
     super.dispose();
   }
 
@@ -326,20 +329,43 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     if (_isCleared) return;
     HapticFeedback.mediumImpact();
 
+    // 発光: 120ms で 0→1 に跳ね上がり、500ms で 1→0 にゆっくり引く
     _glowCtrl?.dispose();
     _glowCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 620),
     );
-    _glowAnim = Tween<double>(begin: 1.0, end: 0.0)
-        .animate(CurvedAnimation(parent: _glowCtrl!, curve: Curves.easeOut));
+    _glowAnim = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 120,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 500,
+      ),
+    ]).animate(_glowCtrl!);
     _glowAnim!.addListener(() => setState(() => _glowValue = _glowAnim!.value));
+
+    // クリアオーバーレイ出現: テキストが 0.6→1.0 にポンッと出る
+    _clearOverlayCtrl?.dispose();
+    _clearOverlayCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _clearScaleAnim = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _clearOverlayCtrl!, curve: Curves.easeOutBack),
+    );
+    _clearScaleAnim!.addListener(() => setState(() {}));
 
     setState(() {
       _isCleared = true;
-      _glowValue = 1.0;
+      _glowValue = 0.0;
     });
     _glowCtrl!.forward();
+    _clearOverlayCtrl!.forward();
   }
 
   void _goNext() {
@@ -366,6 +392,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     _glowCtrl?.dispose();
     _glowCtrl = null;
     _glowAnim = null;
+    _clearOverlayCtrl?.stop();
+    _clearOverlayCtrl?.dispose();
+    _clearOverlayCtrl = null;
+    _clearScaleAnim = null;
     _pickupCtrl?.stop();
     _returnCtrl?.stop();
 
@@ -404,17 +434,34 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     if (geo == null) return;
 
     final localPos = boardBox.globalToLocal(e.position);
-    final cell = geo.pixelToCell(localPos);
-    if (cell == null) return;
 
-    // 押下セルがどの配置済みピースに含まれるか探す
+    // タッチ点をセル座標系の連続値に変換
+    final touchRowF =
+        (localPos.dy - geo.boardOrigin.dy) / geo.cellSize + geo.originRow;
+    final touchColF =
+        (localPos.dx - geo.boardOrigin.dx) / geo.cellSize + geo.originCol;
+
+    // 全 placed ピースの全セルとの距離を測り、最も近いピースを選ぶ
+    int? bestColorIndex;
+    double bestDist = double.infinity;
+
     for (final p in _placed) {
-      if (p.cells.contains(cell)) {
-        _pendingPlacedIndex = p.colorIndex;
-        _pendingDownGlobal = e.position;
-        _boardDragging = false;
-        return;
+      for (final cell in p.cells) {
+        // セル中心は (row+0.5, col+0.5)
+        final dr = (cell.$1 + 0.5) - touchRowF;
+        final dc = (cell.$2 + 0.5) - touchColF;
+        final dist = sqrt(dr * dr + dc * dc);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestColorIndex = p.colorIndex;
+        }
       }
+    }
+
+    if (bestColorIndex != null && bestDist <= _feelConfig.pickupRadius) {
+      _pendingPlacedIndex = bestColorIndex;
+      _pendingDownGlobal = e.position;
+      _boardDragging = false;
     }
   }
 
@@ -531,23 +578,49 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildClearOverlay() {
+    final scale = _clearScaleAnim?.value ?? 1.0;
     return Positioned.fill(
       child: ColoredBox(
-        color: Colors.black54,
+        color: const Color(0x59000000), // 約 35% 暗幕
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'クリア！',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
+            Transform.scale(
+              scale: scale,
+              child: const Text(
+                'クリア！',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 52,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Color(0x99000000),
+                      blurRadius: 10,
+                      offset: Offset(2, 3),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _goNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E88E5),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 16,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: const Text('次へ'),
             ),
           ],
@@ -631,6 +704,17 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 max: 1.0,
                 onChanged: (v) => setState(
                   () => _feelConfig = _feelConfig.copyWith(snapRadius: v),
+                ),
+              ),
+              _settingsSlider(
+                setModalState,
+                label:
+                    'pickupRadius  ${_feelConfig.pickupRadius.toStringAsFixed(2)}',
+                value: _feelConfig.pickupRadius,
+                min: 0.3,
+                max: 1.5,
+                onChanged: (v) => setState(
+                  () => _feelConfig = _feelConfig.copyWith(pickupRadius: v),
                 ),
               ),
               _settingsSlider(
