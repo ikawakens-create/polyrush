@@ -226,12 +226,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       final origin = (snapRow + minY, snapCol + minX);
       final candidate = placedCellsAt(normalizedCells, (origin.$1, origin.$2));
       final frame = puzzle.frame.toSet();
-      // ゴースト判定では浮いているピース自身の占有は除外する
-      final occupiedWithoutDragging = _placed
-          .where((p) => p.colorIndex != index)
-          .expand((p) => p.cells)
-          .toSet();
-      final valid = canPlace(candidate, frame, occupiedWithoutDragging);
+      final valid = canPlace(candidate, frame, _occupied);
       setState(() {
         _ghostCells = candidate;
         _ghostValid = valid;
@@ -347,7 +342,6 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       // slop 超え → 盤面から外して浮かせる
       _boardDragging = true;
 
-      // _placed から除去（_occupied を更新）
       _placed.removeWhere((p) => p.colorIndex == pending);
 
       // 元のトレイ位置を取得
