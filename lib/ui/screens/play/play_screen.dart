@@ -472,24 +472,30 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     final touchColF =
         (localPos.dx - geo.boardOrigin.dx) / geo.cellSize + geo.originCol;
 
-    // 全 placed ピースの全セルとの距離を測り、最も近いピースを選ぶ
+    // 全 placed ピースの全セルとの楕円正規化距離を測り、最も近いピースを選ぶ。
+    // 横の許容 = pickupRadius、縦の許容 = pickupRadius + pickupVerticalBonus。
+    // nd = sqrt((dCol/横許容)^2 + (dRow/縦許容)^2) が 1.0 以下で掴み圏内。
+    final hRadius = _feelConfig.pickupRadius;
+    final vRadius = _feelConfig.pickupRadius + _feelConfig.pickupVerticalBonus;
+
     int? bestColorIndex;
-    double bestDist = double.infinity;
+    double bestNd = double.infinity;
 
     for (final p in _placed) {
       for (final cell in p.cells) {
         // セル中心は (row+0.5, col+0.5)
-        final dr = (cell.$1 + 0.5) - touchRowF;
-        final dc = (cell.$2 + 0.5) - touchColF;
-        final dist = sqrt(dr * dr + dc * dc);
-        if (dist < bestDist) {
-          bestDist = dist;
+        final dRow = (cell.$1 + 0.5) - touchRowF;
+        final dCol = (cell.$2 + 0.5) - touchColF;
+        final nd = sqrt((dCol / hRadius) * (dCol / hRadius) +
+            (dRow / vRadius) * (dRow / vRadius));
+        if (nd < bestNd) {
+          bestNd = nd;
           bestColorIndex = p.colorIndex;
         }
       }
     }
 
-    if (bestColorIndex != null && bestDist <= _feelConfig.pickupRadius) {
+    if (bestColorIndex != null && bestNd <= 1.0) {
       _pendingPlacedIndex = bestColorIndex;
       _pendingDownGlobal = e.position;
       _boardDragging = false;
@@ -746,6 +752,18 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 max: 1.5,
                 onChanged: (v) => setState(
                   () => _feelConfig = _feelConfig.copyWith(pickupRadius: v),
+                ),
+              ),
+              _settingsSlider(
+                setModalState,
+                label:
+                    'pickupVerticalBonus  ${_feelConfig.pickupVerticalBonus.toStringAsFixed(2)}',
+                value: _feelConfig.pickupVerticalBonus,
+                min: 0.0,
+                max: 2.0,
+                onChanged: (v) => setState(
+                  () => _feelConfig =
+                      _feelConfig.copyWith(pickupVerticalBonus: v),
                 ),
               ),
               _settingsSlider(
