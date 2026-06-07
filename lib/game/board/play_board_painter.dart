@@ -97,7 +97,7 @@ class PlayBoardPainter extends CustomPainter {
 
     // クリア発光オーバーレイ
     if (glow > 0) {
-      final alpha = (glow * 0.5 * 255).round().clamp(0, 255);
+      final alpha = (glow * 0.85 * 255).round().clamp(0, 255);
       final glowPaint = Paint()..color = Color.fromARGB(alpha, 255, 255, 255);
       for (final cell in puzzle.frame) {
         canvas.drawRect(geo.cellRect(cell), glowPaint);
