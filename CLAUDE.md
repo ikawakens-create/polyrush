@@ -44,11 +44,22 @@ ls lib/domain/puzzle/
 ## 🌳 ブランチ運用
 
 - ベースブランチ: `develop`(`main` ではない)
-- 機能ブランチ命名: `feature/<task-name>`
-  - 例: `feature/puzzle-generator`, `feature/polyomino-transformer`
-- 自動生成ブランチ名(例: `claude/implement-xxx-XXXXX`)は使用しない
+- 機能ブランチ命名: `feature/<task-name>`(例: `feature/puzzle-generator`)
+- ドキュメントのみの変更: `docs/<task-name>`
 - すべての PR は `develop` を base に作成
 - 直接 `develop` や `main` にコミットしない
+- 自動命名ブランチ(`claude/xxx-XXXXX`)は禁止 → 下記「自動命名ブランチの禁止」を厳守
+
+### 🚫 自動命名ブランチの禁止(Code Web 向け・厳守)
+
+Code Web は放置すると `claude/implement-xxx-XXXXX` のような自動命名ブランチを
+作る癖があるが、本プロジェクトでは禁止である。ブランチは必ず指示文で与えられた
+名前で、develop から手動で切ること:
+
+- 手順: `git checkout develop` → `git pull origin develop` → `git checkout -b <指示された名前>`
+- 命名: `feature/xxx`(機能) または `docs/xxx`(ドキュメントのみ)
+- `git checkout -b` を自分の判断で勝手な名前(特に `claude/...`)で実行しない
+- 指示文にブランチ名の指定が無いときは、推測で作らずユーザーに名前を確認する
 
 ---
 
