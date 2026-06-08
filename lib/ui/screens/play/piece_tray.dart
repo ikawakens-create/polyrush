@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 import 'package:polyrush/game/play/feel_config.dart';
+import 'package:polyrush/ui/screens/play/tray_layout.dart';
 
 const _pieceColors = <Color>[
   Color(0xFFE53935),
@@ -98,6 +99,10 @@ class PieceTray extends StatefulWidget {
 }
 
 class _PieceTrayState extends State<PieceTray> {
+  /// 左詰めで隙間が閉じる/開くアニメーションの所要時間。
+  /// 実機で詰めたくなったら FeelConfig へ昇格させる。
+  static const int _reflowMs = 160;
+
   final ScrollController _scrollCtrl = ScrollController();
 
   Offset? _downPosition;
@@ -134,19 +139,16 @@ class _PieceTrayState extends State<PieceTray> {
   // Row 内でアイテム（Padding(horizontal:12) の内側）が占める幅・高さ（hitboxPad 込み）
   double _itemWidth(int i) =>
       _pieceDrawWidth(i) + widget.feelConfig.hitboxPad * 2;
-  double _itemHeight(int i) =>
-      _pieceDrawHeight(i) + widget.feelConfig.hitboxPad * 2;
-
-  // ピース i のアイテムウィジェット左端のコンテンツ座標（スクロール前）。
-  // SingleChildScrollView の水平 padding=16、各アイテムの Padding(horizontal:12) を考慮。
-  double _contentItemStartX(int i) {
-    double x = 16; // scrollPadding.left
-    for (int j = 0; j < i; j++) {
-      x += 12 + _itemWidth(j) + 12;
-    }
-    x += 12; // piece i の Padding(horizontal:12) の左辺
-    return x;
-  }
+  // ピース i の内容左端のコンテンツ座標（スクロール前）。
+  // 左詰め: 非表示（配置済み・ドラッグ中）のピースは幅 0 として詰める。
+  // 計算は純粋関数 packedItemStartX に委譲し CI で検証する。
+  double _contentItemStartX(int i) => packedItemStartX(
+        itemWidths: [
+          for (var j = 0; j < widget.puzzle.blocks.length; j++) _itemWidth(j),
+        ],
+        hidden: widget.hiddenIndices,
+        index: i,
+      );
 
   // ピース i の全セル中心のコンテンツ座標リスト（最近傍計算に使う）。
   List<Offset> _cellCentersInContent(int i) {
@@ -285,27 +287,28 @@ class _PieceTrayState extends State<PieceTray> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var i = 0; i < widget.puzzle.blocks.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                AnimatedSize(
+                  key: ValueKey('tray-piece-$i'),
+                  duration: const Duration(milliseconds: _reflowMs),
+                  curve: Curves.easeOut,
+                  alignment: Alignment.centerLeft,
                   child: widget.hiddenIndices.contains(i)
-                      ? SizedBox(
-                          key: ValueKey('tray-piece-$i'),
-                          width: _itemWidth(i),
-                          height: _itemHeight(i),
-                        )
+                      ? const SizedBox.shrink()
                       : Padding(
-                          key: ValueKey('tray-piece-$i'),
-                          padding:
-                              EdgeInsets.all(widget.feelConfig.hitboxPad),
-                          child: CustomPaint(
-                            size: Size(
-                              _pieceDrawWidth(i),
-                              _pieceDrawHeight(i),
-                            ),
-                            painter: PiecePainter(
-                              block: widget.puzzle.blocks[i],
-                              colorIndex: i,
-                              cellSize: PieceTray._trayCell,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Padding(
+                            padding:
+                                EdgeInsets.all(widget.feelConfig.hitboxPad),
+                            child: CustomPaint(
+                              size: Size(
+                                _pieceDrawWidth(i),
+                                _pieceDrawHeight(i),
+                              ),
+                              painter: PiecePainter(
+                                block: widget.puzzle.blocks[i],
+                                colorIndex: i,
+                                cellSize: PieceTray._trayCell,
+                              ),
                             ),
                           ),
                         ),
