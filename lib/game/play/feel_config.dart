@@ -13,6 +13,7 @@ class FeelConfig {
     this.dragStartSlop = 8.0,
     this.pickupRadius = 0.8,
     this.grabDirectionRatio = 1.0,
+    this.trayPickupRadius = 1.0,
   });
 
   /// 指の接触点からピースを上方向にずらすピクセル数。
@@ -46,6 +47,10 @@ class FeelConfig {
   /// 小さいほど掴みやすい。
   final double grabDirectionRatio;
 
+  /// トレイのピースを掴める範囲（トレイセル単位）。触れた点がピースのいずれかのセル中心から
+  /// 縦横ともこの距離以内なら、最も近いピースを掴む（正方形・最近傍）。
+  final double trayPickupRadius;
+
   FeelConfig copyWith({
     double? fingerOffset,
     double? hitboxPad,
@@ -56,6 +61,7 @@ class FeelConfig {
     double? dragStartSlop,
     double? pickupRadius,
     double? grabDirectionRatio,
+    double? trayPickupRadius,
   }) =>
       FeelConfig(
         fingerOffset: fingerOffset ?? this.fingerOffset,
@@ -67,5 +73,6 @@ class FeelConfig {
         dragStartSlop: dragStartSlop ?? this.dragStartSlop,
         pickupRadius: pickupRadius ?? this.pickupRadius,
         grabDirectionRatio: grabDirectionRatio ?? this.grabDirectionRatio,
+        trayPickupRadius: trayPickupRadius ?? this.trayPickupRadius,
       );
 }

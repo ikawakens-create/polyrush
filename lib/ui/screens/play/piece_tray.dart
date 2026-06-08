@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 import 'package:polyrush/game/play/feel_config.dart';
@@ -59,139 +61,16 @@ class PiecePainter extends CustomPainter {
       old.cellSize != cellSize;
 }
 
-/// トレイ内のピース 1 個を表すウィジェット。
-///
-/// [Listener] でポインタイベントを拾い、掴み・追従・離しを
-/// コールバック経由で [PieceTray] → [PlayScreen] へ通知する。
-/// [dragStartSlop] 以上ポインタが動いた時点で方向を判定する:
-///   上方向 → 掴み開始（onPickup）
-///   横方向・下方向 → このジェスチャをスクロールに委譲し掴みは発火しない。
-/// Listener はジェスチャアリーナに参加しないため、委譲時も親の
-/// SingleChildScrollView が横スクロールを受け取れる。
-class _TrayItem extends StatefulWidget {
-  const _TrayItem({
-    super.key,
-    required this.block,
-    required this.colorIndex,
-    required this.hitboxPad,
-    required this.trayCell,
-    required this.dragStartSlop,
-    required this.grabDirectionRatio,
-    required this.onPickup,
-    required this.onMove,
-    required this.onDrop,
-  });
-
-  final PlacedBlock block;
-  final int colorIndex;
-  final double hitboxPad;
-  final double trayCell;
-  final double dragStartSlop;
-
-  /// 掴みと判定する縦横比しきい値（FeelConfig.grabDirectionRatio から渡す）。
-  final double grabDirectionRatio;
-
-  final void Function(Offset pointerGlobal, Offset itemGlobal) onPickup;
-  final void Function(Offset pointerGlobal) onMove;
-  final void Function(Offset pointerGlobal) onDrop;
-
-  @override
-  State<_TrayItem> createState() => _TrayItemState();
-}
-
-class _TrayItemState extends State<_TrayItem> {
-  Offset? _downPosition;
-  bool _dragging = false;
-
-  /// true のとき、このジェスチャはスクロールに委譲済み（掴みは発火しない）。
-  bool _scrollDelegated = false;
-
-  void _reset() {
-    _downPosition = null;
-    _dragging = false;
-    _scrollDelegated = false;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cells = widget.block.orientation.cells;
-    final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-    final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
-    final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-    final maxX = cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
-
-    final pieceW = (maxX - minX + 1) * widget.trayCell;
-    final pieceH = (maxY - minY + 1) * widget.trayCell;
-
-    return Listener(
-      onPointerDown: (e) {
-        _downPosition = e.position;
-        _dragging = false;
-        _scrollDelegated = false;
-      },
-      onPointerMove: (e) {
-        if (_dragging) {
-          widget.onMove(e.position);
-          return;
-        }
-        // スクロール委譲済みなら何もしない（親 ScrollView が受け取る）
-        if (_scrollDelegated) return;
-
-        final down = _downPosition;
-        if (down == null) return;
-        final d = e.position - down;
-        if (d.distance < widget.dragStartSlop) return;
-
-        // slop 超え → 方向で掴みかスクロールかを決定する
-        // 画面座標は下が正のため、上方向は dy が負 → dyUp を正に反転
-        final dyUp = -d.dy;
-        final dxAbs = d.dx.abs();
-
-        if (dyUp > 0 && dyUp >= dxAbs * widget.grabDirectionRatio) {
-          // 上方向の動き → 掴み開始
-          _dragging = true;
-          final box = context.findRenderObject() as RenderBox;
-          // Listener の外辺は hitboxPad ぶん広いので CustomPaint の中心を正確に計算する
-          final itemCenter = box.localToGlobal(
-            Offset(
-              widget.hitboxPad + pieceW / 2,
-              widget.hitboxPad + pieceH / 2,
-            ),
-          );
-          widget.onPickup(e.position, itemCenter);
-        } else {
-          // 横方向・下方向 → スクロールに委譲（以後このジェスチャでは掴まない）
-          _scrollDelegated = true;
-        }
-      },
-      onPointerUp: (e) {
-        if (_dragging) widget.onDrop(e.position);
-        _reset();
-      },
-      onPointerCancel: (e) {
-        if (_dragging) widget.onDrop(e.position);
-        _reset();
-      },
-      child: Padding(
-        padding: EdgeInsets.all(widget.hitboxPad),
-        child: CustomPaint(
-          size: Size(pieceW, pieceH),
-          painter: PiecePainter(
-            block: widget.block,
-            colorIndex: widget.colorIndex,
-            cellSize: widget.trayCell,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// ピースを横並びで表示するトレイ。
 ///
-/// 各ピースをサムネイルサイズで描き、掴み・追従・離しを [PlayScreen] へ通知する。
-/// [hiddenIndices] に含まれるピースは非表示（配置済みまたはドラッグ中）。
-class PieceTray extends StatelessWidget {
+/// トレイ全体を 1 つの Listener で覆い、触れた座標から最近傍のピースを選んで掴む
+/// （正方形・最近傍判定）。掴み範囲は [FeelConfig.trayPickupRadius]（トレイセル単位）で調整。
+/// [FeelConfig.dragStartSlop] 以上ポインタが動いた時点で方向を判定する:
+///   上方向 → 掴み開始（onPickup）
+///   横方向・下方向 → スクロールに委譲し掴みは発火しない。
+/// Listener はジェスチャアリーナに参加しないため、委譲時も親の
+/// SingleChildScrollView が横スクロールを受け取れる。
+class PieceTray extends StatefulWidget {
   const PieceTray({
     super.key,
     required this.puzzle,
@@ -215,54 +94,218 @@ class PieceTray extends StatelessWidget {
   static const double _trayCell = 28.0;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFEAE5D8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            for (var i = 0; i < puzzle.blocks.length; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: hiddenIndices.contains(i)
-                    ? SizedBox(
-                        key: ValueKey('tray-piece-$i'),
-                        width: _trayItemWidth(puzzle.blocks[i]),
-                        height: _trayItemHeight(puzzle.blocks[i]),
-                      )
-                    : _TrayItem(
-                        key: ValueKey('tray-piece-$i'),
-                        block: puzzle.blocks[i],
-                        colorIndex: i,
-                        hitboxPad: feelConfig.hitboxPad,
-                        trayCell: _trayCell,
-                        dragStartSlop: feelConfig.dragStartSlop,
-                        grabDirectionRatio: feelConfig.grabDirectionRatio,
-                        onPickup: (pointerGlobal, itemGlobal) =>
-                            onPickup(i, pointerGlobal, itemGlobal),
-                        onMove: onMove,
-                        onDrop: onDrop,
-                      ),
-              ),
-          ],
-        ),
-      ),
+  State<PieceTray> createState() => _PieceTrayState();
+}
+
+class _PieceTrayState extends State<PieceTray> {
+  final ScrollController _scrollCtrl = ScrollController();
+
+  Offset? _downPosition;
+  int? _pickedIndex;
+  bool _dragging = false;
+
+  /// true のとき、このジェスチャはスクロールに委譲済み（掴みは発火しない）。
+  bool _scrollDelegated = false;
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  double get _scrollOffset =>
+      _scrollCtrl.hasClients ? _scrollCtrl.offset : 0.0;
+
+  // ピース i の描画幅・高さ（hitboxPad を除く）
+  double _pieceDrawWidth(int i) {
+    final cells = widget.puzzle.blocks[i].orientation.cells;
+    final minX = cells.map((c) => c.$2).reduce(min);
+    final maxX = cells.map((c) => c.$2).reduce(max);
+    return (maxX - minX + 1) * PieceTray._trayCell;
+  }
+
+  double _pieceDrawHeight(int i) {
+    final cells = widget.puzzle.blocks[i].orientation.cells;
+    final minY = cells.map((c) => c.$1).reduce(min);
+    final maxY = cells.map((c) => c.$1).reduce(max);
+    return (maxY - minY + 1) * PieceTray._trayCell;
+  }
+
+  // Row 内でアイテム（Padding(horizontal:12) の内側）が占める幅・高さ（hitboxPad 込み）
+  double _itemWidth(int i) =>
+      _pieceDrawWidth(i) + widget.feelConfig.hitboxPad * 2;
+  double _itemHeight(int i) =>
+      _pieceDrawHeight(i) + widget.feelConfig.hitboxPad * 2;
+
+  // ピース i のアイテムウィジェット左端のコンテンツ座標（スクロール前）。
+  // SingleChildScrollView の水平 padding=16、各アイテムの Padding(horizontal:12) を考慮。
+  double _contentItemStartX(int i) {
+    double x = 16; // scrollPadding.left
+    for (int j = 0; j < i; j++) {
+      x += 12 + _itemWidth(j) + 12;
+    }
+    x += 12; // piece i の Padding(horizontal:12) の左辺
+    return x;
+  }
+
+  // ピース i の全セル中心のコンテンツ座標リスト（最近傍計算に使う）。
+  List<Offset> _cellCentersInContent(int i) {
+    final block = widget.puzzle.blocks[i];
+    final cells = block.orientation.cells;
+    final minY = cells.map((c) => c.$1).reduce(min);
+    final minX = cells.map((c) => c.$2).reduce(min);
+
+    // CustomPaint 左上のコンテンツ座標（hitboxPad のパディングを加算）
+    final startX = _contentItemStartX(i) + widget.feelConfig.hitboxPad;
+    const startY = 8.0; // scrollPadding.top
+
+    return cells
+        .map(
+          (c) => Offset(
+            startX + (c.$2 - minX + 0.5) * PieceTray._trayCell,
+            startY + widget.feelConfig.hitboxPad + (c.$1 - minY + 0.5) * PieceTray._trayCell,
+          ),
+        )
+        .toList();
+  }
+
+  // ピース i の中心のグローバル座標（onPickup の itemGlobal として渡す戻り先）。
+  Offset _itemCenterGlobal(int i) {
+    final box = context.findRenderObject() as RenderBox;
+    final contentCenterX =
+        _contentItemStartX(i) + widget.feelConfig.hitboxPad + _pieceDrawWidth(i) / 2;
+    const contentTopY = 8.0; // scrollPadding.top
+    final contentCenterY =
+        contentTopY + widget.feelConfig.hitboxPad + _pieceDrawHeight(i) / 2;
+    return box.localToGlobal(
+      Offset(contentCenterX - _scrollOffset, contentCenterY),
     );
   }
 
-  double _trayItemWidth(PlacedBlock block) {
-    final cells = block.orientation.cells;
-    final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-    final maxX = cells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
-    return (maxX - minX + 1) * _trayCell + feelConfig.hitboxPad * 2;
+  void _onPointerDown(PointerDownEvent e) {
+    final box = context.findRenderObject() as RenderBox;
+    final local = box.globalToLocal(e.position);
+    // スクロールオフセットを加算してコンテンツ座標に変換
+    final contentX = local.dx + _scrollOffset;
+    final contentY = local.dy;
+
+    final radius = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
+    int? bestIndex;
+    double bestDist = double.infinity;
+
+    for (int i = 0; i < widget.puzzle.blocks.length; i++) {
+      if (widget.hiddenIndices.contains(i)) continue;
+      for (final center in _cellCentersInContent(i)) {
+        final dX = (center.dx - contentX).abs();
+        final dY = (center.dy - contentY).abs();
+        if (dX <= radius && dY <= radius) {
+          final cheb = max(dX, dY);
+          if (cheb < bestDist) {
+            bestDist = cheb;
+            bestIndex = i;
+          }
+        }
+      }
+    }
+
+    _downPosition = e.position;
+    _pickedIndex = bestIndex;
+    _dragging = false;
+    _scrollDelegated = false;
   }
 
-  double _trayItemHeight(PlacedBlock block) {
-    final cells = block.orientation.cells;
-    final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-    final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
-    return (maxY - minY + 1) * _trayCell + feelConfig.hitboxPad * 2;
+  void _onPointerMove(PointerMoveEvent e) {
+    if (_dragging) {
+      widget.onMove(e.position);
+      return;
+    }
+    // スクロール委譲済み、またはピースが選ばれていない場合は何もしない
+    if (_scrollDelegated || _pickedIndex == null) return;
+
+    final down = _downPosition;
+    if (down == null) return;
+    final d = e.position - down;
+    if (d.distance < widget.feelConfig.dragStartSlop) return;
+
+    // slop 超え → 方向で掴みかスクロールかを決定する
+    // 画面座標は下が正のため、上方向は dy が負 → dyUp を正に反転
+    final dyUp = -d.dy;
+    final dxAbs = d.dx.abs();
+
+    if (dyUp > 0 && dyUp >= dxAbs * widget.feelConfig.grabDirectionRatio) {
+      // 上方向の動き → 掴み開始
+      _dragging = true;
+      final index = _pickedIndex!;
+      widget.onPickup(index, e.position, _itemCenterGlobal(index));
+    } else {
+      // 横方向・下方向 → スクロールに委譲（以後このジェスチャでは掴まない）
+      _scrollDelegated = true;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent e) {
+    if (_dragging) widget.onDrop(e.position);
+    _reset();
+  }
+
+  void _onPointerCancel(PointerCancelEvent e) {
+    if (_dragging) widget.onDrop(e.position);
+    _reset();
+  }
+
+  void _reset() {
+    _downPosition = null;
+    _pickedIndex = null;
+    _dragging = false;
+    _scrollDelegated = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
+      child: Container(
+        color: const Color(0xFFEAE5D8),
+        child: SingleChildScrollView(
+          controller: _scrollCtrl,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < widget.puzzle.blocks.length; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: widget.hiddenIndices.contains(i)
+                      ? SizedBox(
+                          key: ValueKey('tray-piece-$i'),
+                          width: _itemWidth(i),
+                          height: _itemHeight(i),
+                        )
+                      : Padding(
+                          key: ValueKey('tray-piece-$i'),
+                          padding:
+                              EdgeInsets.all(widget.feelConfig.hitboxPad),
+                          child: CustomPaint(
+                            size: Size(
+                              _pieceDrawWidth(i),
+                              _pieceDrawHeight(i),
+                            ),
+                            painter: PiecePainter(
+                              block: widget.puzzle.blocks[i],
+                              colorIndex: i,
+                              cellSize: PieceTray._trayCell,
+                            ),
+                          ),
+                        ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

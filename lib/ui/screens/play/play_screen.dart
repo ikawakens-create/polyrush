@@ -772,6 +772,18 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                       _feelConfig = _feelConfig.copyWith(grabDirectionRatio: v),
                 ),
               ),
+              _settingsSlider(
+                setModalState,
+                label:
+                    'trayPickupRadius  ${_feelConfig.trayPickupRadius.toStringAsFixed(2)}',
+                value: _feelConfig.trayPickupRadius,
+                min: 0.5,
+                max: 2.5,
+                onChanged: (v) => setState(
+                  () =>
+                      _feelConfig = _feelConfig.copyWith(trayPickupRadius: v),
+                ),
+              ),
             ],
           ),
         ),
