@@ -55,6 +55,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   Offset? _pendingDownGlobal;
   bool _boardDragging = false;
 
+  // タイトル隠しコマンド（5回連続タップでパネルを開く）
+  int _titleTapCount = 0;
+  DateTime? _lastTitleTap;
+
   // クリア状態
   bool _isCleared = false;
   double _glowValue = 0.0;
@@ -451,6 +455,22 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _onTitleTap() {
+    final now = DateTime.now();
+    final last = _lastTitleTap;
+    if (last != null && now.difference(last).inMilliseconds <= 800) {
+      _titleTapCount++;
+    } else {
+      _titleTapCount = 1;
+    }
+    _lastTitleTap = now;
+    if (_titleTapCount >= 5) {
+      _titleTapCount = 0;
+      _lastTitleTap = null;
+      _openSettingsPanel(context);
+    }
+  }
+
   // ── 盤面ピース掴み処理 ──────────────────────────────────────────
 
   void _onBoardPointerDown(PointerDownEvent e, GeneratedPuzzle puzzle) {
@@ -834,7 +854,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF4EFE6),
         elevation: 0,
-        title: const Text('PolyRush（プレイ）'),
+        title: GestureDetector(
+          onTap: _onTitleTap,
+          child: const Text('PolyRush（プレイ）'),
+        ),
         actions: [
           PopupMenuButton<Difficulty>(
             tooltip: '難易度',
@@ -852,10 +875,6 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _openSettingsPanel(context),
           ),
         ],
       ),

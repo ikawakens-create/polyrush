@@ -62,6 +62,15 @@ void main() {
           reason: '初期状態（ピース未配置）ではクリアオーバーレイが存在しない',
         );
       });
+
+      testWidgets('初期状態で手触り調整パネルが表示されない', (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
+        expect(
+          find.text('手触り調整'),
+          findsNothing,
+          reason: '初期状態では調整パネルが閉じている',
+        );
+      });
     });
 
     group('B. ドラッグ', () {

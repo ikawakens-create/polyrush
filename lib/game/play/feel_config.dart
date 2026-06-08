@@ -12,9 +12,9 @@ class FeelConfig {
     this.snapRadius = 0.5,
     this.dragStartSlop = 8.0,
     this.pickupRadius = 0.8,
-    this.grabDirectionRatio = 1.0,
-    this.trayPickupRadius = 1.0,
-    this.trayPickupDownBonus = 1.5,
+    this.grabDirectionRatio = 0.3,
+    this.trayPickupRadius = 2.5,
+    this.trayPickupDownBonus = 3.0,
   });
 
   /// 指の接触点からピースを上方向にずらすピクセル数。
