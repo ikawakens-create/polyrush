@@ -189,19 +189,27 @@ class _PieceTrayState extends State<PieceTray> {
     final contentX = local.dx + _scrollOffset;
     final contentY = local.dy;
 
-    final radius = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
+    final hRad = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
+    final upRad = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
+    final downRad =
+        (widget.feelConfig.trayPickupRadius + widget.feelConfig.trayPickupDownBonus) *
+        PieceTray._trayCell;
     int? bestIndex;
     double bestDist = double.infinity;
 
     for (int i = 0; i < widget.puzzle.blocks.length; i++) {
       if (widget.hiddenIndices.contains(i)) continue;
       for (final center in _cellCentersInContent(i)) {
-        final dX = (center.dx - contentX).abs();
-        final dY = (center.dy - contentY).abs();
-        if (dX <= radius && dY <= radius) {
-          final cheb = max(dX, dY);
-          if (cheb < bestDist) {
-            bestDist = cheb;
+        final dxAbs = (center.dx - contentX).abs();
+        // contentY - center.dy > 0 のとき触れた点はセル中心より下（画面座標は下が正）
+        final dyRaw = contentY - center.dy;
+        final vLimit = dyRaw > 0 ? downRad : upRad;
+        final dyAbs = dyRaw.abs();
+        if (dxAbs <= hRad && dyAbs <= vLimit) {
+          // 横・縦それぞれの許容で正規化した最大値（非対称な箱）で最近傍を選ぶ
+          final nd = max(dxAbs / hRad, dyAbs / vLimit);
+          if (nd < bestDist) {
+            bestDist = nd;
             bestIndex = i;
           }
         }
