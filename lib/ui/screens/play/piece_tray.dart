@@ -66,8 +66,8 @@ class PiecePainter extends CustomPainter {
 /// トレイ全体を 1 つの Listener で覆い、触れた座標から最近傍のピースを選んで掴む
 /// （正方形・最近傍判定）。掴み範囲は [FeelConfig.trayPickupRadius]（トレイセル単位）で調整。
 /// [FeelConfig.dragStartSlop] 以上ポインタが動いた時点で方向を判定する:
-///   上方向 → 掴み開始（onPickup）
-///   横方向・下方向 → スクロールに委譲し掴みは発火しない。
+///   縦方向（上下どちらでも） → 掴み開始（onPickup）
+///   横方向（真横寄り） → スクロールに委譲し掴みは発火しない。
 /// Listener はジェスチャアリーナに参加しないため、委譲時も親の
 /// SingleChildScrollView が横スクロールを受け取れる。
 class PieceTray extends StatefulWidget {
@@ -236,17 +236,17 @@ class _PieceTrayState extends State<PieceTray> {
     if (d.distance < widget.feelConfig.dragStartSlop) return;
 
     // slop 超え → 方向で掴みかスクロールかを決定する
-    // 画面座標は下が正のため、上方向は dy が負 → dyUp を正に反転
-    final dyUp = -d.dy;
+    // 縦方向（上下どちらでも）に動けば掴み、横に動けばスクロール
+    final dyAbs = d.dy.abs();
     final dxAbs = d.dx.abs();
 
-    if (dyUp > 0 && dyUp >= dxAbs * widget.feelConfig.grabDirectionRatio) {
-      // 上方向の動き → 掴み開始
+    if (dyAbs >= dxAbs * widget.feelConfig.grabDirectionRatio) {
+      // 縦方向（上下どちらでも）の動き → 掴み開始
       _dragging = true;
       final index = _pickedIndex!;
       widget.onPickup(index, e.position, _itemCenterGlobal(index));
     } else {
-      // 横方向・下方向 → スクロールに委譲（以後このジェスチャでは掴まない）
+      // 横方向（真横寄り） → スクロールに委譲（以後このジェスチャでは掴まない）
       _scrollDelegated = true;
     }
   }
