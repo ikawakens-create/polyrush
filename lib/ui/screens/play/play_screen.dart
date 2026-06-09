@@ -413,7 +413,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       final candidate = rng.nextInt(1000000) + 1;
       if (candidate == _currentSeed) continue;
       final r = CompactPuzzleGeneratorV3.generate(
-        difficulty: Difficulty.easy,
+        difficulty: _difficulty,
         seed: candidate,
       );
       if (r is Ok<VerifiedPuzzle, CompactPuzzleError>) {
