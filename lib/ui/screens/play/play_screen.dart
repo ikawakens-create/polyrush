@@ -13,6 +13,7 @@ import 'package:polyrush/game/board/grid_geometry.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';
 import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/game/play/placement_logic.dart';
+import 'package:polyrush/ui/screens/play/confetti_overlay.dart';
 import 'package:polyrush/ui/screens/play/piece_tray.dart';
 
 /// プレイ画面（Phase 2 PR-D: 完成判定＋クリア表示＋次へ）（ADR-0014）。
@@ -935,6 +936,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 ],
               ),
               _buildFloatingPiece(value.puzzle.blocks),
+              ConfettiOverlay(active: _isCleared),
               if (_isCleared) _buildClearOverlay(),
             ],
           ),
