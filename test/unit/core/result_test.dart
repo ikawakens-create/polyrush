@@ -88,16 +88,12 @@ void main() {
   // ─── 4. sealed class の switch 網羅性 ────────────────────────────────────
   group('sealed class の switch 網羅性', () {
     String describe(Result<int, String> r) => switch (r) {
-          Ok(:final value) => 'ok:$value',
-          Err(:final error) => 'err:$error',
-        };
+      Ok(:final value) => 'ok:$value',
+      Err(:final error) => 'err:$error',
+    };
 
     test('Ok case が選択される', () {
-      expect(
-        describe(const Ok(10)),
-        'ok:10',
-        reason: 'Ok に対して Ok case が選択される',
-      );
+      expect(describe(const Ok(10)), 'ok:10', reason: 'Ok に対して Ok case が選択される');
     });
 
     test('Err case が選択される', () {

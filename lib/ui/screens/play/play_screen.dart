@@ -71,8 +71,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   final GlobalKey _stackKey = GlobalKey();
   final GlobalKey _boardKey = GlobalKey();
 
-  Set<Cell> get _occupied =>
-      _placed.expand((p) => p.cells).toSet();
+  Set<Cell> get _occupied => _placed.expand((p) => p.cells).toSet();
 
   Set<int> _buildHiddenIndices() {
     final hidden = <int>{};
@@ -163,6 +162,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       }
       element.visitChildren(visitor);
     }
+
     if (mounted) {
       WidgetsBinding.instance.rootElement?.visitChildren(visitor);
     }
@@ -188,8 +188,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: Duration(milliseconds: _feelConfig.pickupMs),
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: _feelConfig.pickupScale)
-        .animate(CurvedAnimation(parent: _pickupCtrl!, curve: Curves.easeOut));
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: _feelConfig.pickupScale,
+    ).animate(CurvedAnimation(parent: _pickupCtrl!, curve: Curves.easeOut));
     _scaleAnim!.addListener(
       () => setState(() => _dragScale = _scaleAnim!.value),
     );
@@ -324,12 +326,14 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       duration: Duration(milliseconds: _feelConfig.returnMs),
     );
 
-    _returnPosAnim = Tween<Offset>(begin: startGlobal, end: endGlobal).animate(
-      CurvedAnimation(parent: _returnCtrl!, curve: Curves.easeOut),
-    );
-    _returnScaleAnim = Tween<double>(begin: startScale, end: 1.0).animate(
-      CurvedAnimation(parent: _returnCtrl!, curve: Curves.easeOut),
-    );
+    _returnPosAnim = Tween<Offset>(
+      begin: startGlobal,
+      end: endGlobal,
+    ).animate(CurvedAnimation(parent: _returnCtrl!, curve: Curves.easeOut));
+    _returnScaleAnim = Tween<double>(
+      begin: startScale,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _returnCtrl!, curve: Curves.easeOut));
 
     _returnCtrl!.addListener(() {
       setState(() {
@@ -373,13 +377,17 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     );
     _glowAnim = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 120,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 500,
       ),
     ]).animate(_glowCtrl!);
@@ -502,7 +510,8 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
         // セル中心は (row+0.5, col+0.5)
         final dRow = ((cell.$1 + 0.5) - touchRowF).abs();
         final dCol = ((cell.$2 + 0.5) - touchColF).abs();
-        if (dRow <= _feelConfig.pickupRadius && dCol <= _feelConfig.pickupRadius) {
+        if (dRow <= _feelConfig.pickupRadius &&
+            dCol <= _feelConfig.pickupRadius) {
           final cheb = max(dRow, dCol);
           if (cheb < bestDist) {
             bestDist = cheb;
@@ -720,7 +729,8 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
               ),
               _settingsSlider(
                 setModalState,
-                label: 'pickupScale  ${_feelConfig.pickupScale.toStringAsFixed(2)}',
+                label:
+                    'pickupScale  ${_feelConfig.pickupScale.toStringAsFixed(2)}',
                 value: _feelConfig.pickupScale,
                 min: 1.0,
                 max: 1.5,
@@ -735,8 +745,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 min: 0,
                 max: 500,
                 onChanged: (v) => setState(
-                  () =>
-                      _feelConfig = _feelConfig.copyWith(pickupMs: v.round()),
+                  () => _feelConfig = _feelConfig.copyWith(pickupMs: v.round()),
                 ),
               ),
               _settingsSlider(
@@ -746,13 +755,13 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 min: 0,
                 max: 500,
                 onChanged: (v) => setState(
-                  () =>
-                      _feelConfig = _feelConfig.copyWith(returnMs: v.round()),
+                  () => _feelConfig = _feelConfig.copyWith(returnMs: v.round()),
                 ),
               ),
               _settingsSlider(
                 setModalState,
-                label: 'snapRadius  ${_feelConfig.snapRadius.toStringAsFixed(2)}',
+                label:
+                    'snapRadius  ${_feelConfig.snapRadius.toStringAsFixed(2)}',
                 value: _feelConfig.snapRadius,
                 min: 0.0,
                 max: 1.0,
@@ -801,8 +810,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 min: 0.5,
                 max: 2.5,
                 onChanged: (v) => setState(
-                  () =>
-                      _feelConfig = _feelConfig.copyWith(trayPickupRadius: v),
+                  () => _feelConfig = _feelConfig.copyWith(trayPickupRadius: v),
                 ),
               ),
               _settingsSlider(
@@ -813,8 +821,9 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                 min: 0.0,
                 max: 3.0,
                 onChanged: (v) => setState(
-                  () => _feelConfig =
-                      _feelConfig.copyWith(trayPickupDownBonus: v),
+                  () => _feelConfig = _feelConfig.copyWith(
+                    trayPickupDownBonus: v,
+                  ),
                 ),
               ),
             ],
@@ -831,22 +840,21 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     required double min,
     required double max,
     required void Function(double) onChanged,
-  }) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          Slider(
-            value: value,
-            min: min,
-            max: max,
-            onChanged: (v) {
-              onChanged(v);
-              setModalState(() {});
-            },
-          ),
-        ],
-      );
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label),
+      Slider(
+        value: value,
+        min: min,
+        max: max,
+        onChanged: (v) {
+          onChanged(v);
+          setModalState(() {});
+        },
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -881,65 +889,63 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       ),
       body: switch (_result) {
         Err(:final error) => Center(
-            child: Text(
-              '生成に失敗しました: ${error.name}',
-              style: const TextStyle(
-                color: Color(0xFFB71C1C),
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
+          child: Text(
+            '生成に失敗しました: ${error.name}',
+            style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 16),
+            textAlign: TextAlign.center,
           ),
+        ),
         Ok(:final value) => Stack(
-            key: _stackKey,
-            children: [
-              Column(
-                children: [
-                  Expanded(
-                    flex: 6,
-                    child: Listener(
-                      onPointerDown: (e) =>
-                          _onBoardPointerDown(e, value.puzzle),
-                      onPointerMove: (e) =>
-                          _onBoardPointerMove(e, value.puzzle),
-                      onPointerUp: (e) =>
-                          _onBoardPointerUp(e, value.puzzle),
-                      onPointerCancel: (e) =>
-                          _onBoardPointerCancel(e, value.puzzle),
-                      child: CustomPaint(
-                        key: _boardKey,
-                        painter: PlayBoardPainter(
-                          puzzle: value.puzzle,
-                          placed: _placed,
-                          ghostCells: _ghostCells,
-                          ghostValid: _ghostValid,
-                          glow: _glowValue,
-                        ),
-                        child: const SizedBox.expand(),
+          key: _stackKey,
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: Listener(
+                    onPointerDown: (e) => _onBoardPointerDown(e, value.puzzle),
+                    onPointerMove: (e) => _onBoardPointerMove(e, value.puzzle),
+                    onPointerUp: (e) => _onBoardPointerUp(e, value.puzzle),
+                    onPointerCancel: (e) =>
+                        _onBoardPointerCancel(e, value.puzzle),
+                    child: CustomPaint(
+                      key: _boardKey,
+                      painter: PlayBoardPainter(
+                        puzzle: value.puzzle,
+                        placed: _placed,
+                        ghostCells: _ghostCells,
+                        ghostValid: _ghostValid,
+                        glow: _glowValue,
                       ),
+                      child: const SizedBox.expand(),
                     ),
                   ),
-                  Expanded(
-                    flex: 4,
-                    child: PieceTray(
-                      puzzle: value.puzzle,
-                      feelConfig: _feelConfig,
-                      hiddenIndices: _buildHiddenIndices(),
-                      onPickup: (index, pointerGlobal, itemGlobal) =>
-                          _onPickup(index, pointerGlobal, itemGlobal, value.puzzle),
-                      onMove: (pointerGlobal) =>
-                          _onMove(pointerGlobal, value.puzzle),
-                      onDrop: (pointerGlobal) =>
-                          _onDrop(pointerGlobal, value.puzzle),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: PieceTray(
+                    puzzle: value.puzzle,
+                    feelConfig: _feelConfig,
+                    hiddenIndices: _buildHiddenIndices(),
+                    onPickup: (index, pointerGlobal, itemGlobal) => _onPickup(
+                      index,
+                      pointerGlobal,
+                      itemGlobal,
+                      value.puzzle,
                     ),
+                    onMove: (pointerGlobal) =>
+                        _onMove(pointerGlobal, value.puzzle),
+                    onDrop: (pointerGlobal) =>
+                        _onDrop(pointerGlobal, value.puzzle),
                   ),
-                ],
-              ),
-              _buildFloatingPiece(value.puzzle.blocks),
-              ConfettiOverlay(active: _isCleared),
-              if (_isCleared) _buildClearOverlay(),
-            ],
-          ),
+                ),
+              ],
+            ),
+            _buildFloatingPiece(value.puzzle.blocks),
+            ConfettiOverlay(active: _isCleared),
+            if (_isCleared) _buildClearOverlay(),
+          ],
+        ),
       },
     );
   }

@@ -85,7 +85,7 @@ class PieceTray extends StatefulWidget {
   final GeneratedPuzzle puzzle;
   final FeelConfig feelConfig;
   final void Function(int index, Offset pointerGlobal, Offset itemGlobal)
-      onPickup;
+  onPickup;
   final void Function(Offset pointerGlobal) onMove;
   final void Function(Offset pointerGlobal) onDrop;
 
@@ -118,8 +118,7 @@ class _PieceTrayState extends State<PieceTray> {
     super.dispose();
   }
 
-  double get _scrollOffset =>
-      _scrollCtrl.hasClients ? _scrollCtrl.offset : 0.0;
+  double get _scrollOffset => _scrollCtrl.hasClients ? _scrollCtrl.offset : 0.0;
 
   // ピース i の描画幅・高さ（hitboxPad を除く）
   double _pieceDrawWidth(int i) {
@@ -143,12 +142,12 @@ class _PieceTrayState extends State<PieceTray> {
   // 左詰め: 非表示（配置済み・ドラッグ中）のピースは幅 0 として詰める。
   // 計算は純粋関数 packedItemStartX に委譲し CI で検証する。
   double _contentItemStartX(int i) => packedItemStartX(
-        itemWidths: [
-          for (var j = 0; j < widget.puzzle.blocks.length; j++) _itemWidth(j),
-        ],
-        hidden: widget.hiddenIndices,
-        index: i,
-      );
+    itemWidths: [
+      for (var j = 0; j < widget.puzzle.blocks.length; j++) _itemWidth(j),
+    ],
+    hidden: widget.hiddenIndices,
+    index: i,
+  );
 
   // ピース i の全セル中心のコンテンツ座標リスト（最近傍計算に使う）。
   List<Offset> _cellCentersInContent(int i) {
@@ -165,7 +164,9 @@ class _PieceTrayState extends State<PieceTray> {
         .map(
           (c) => Offset(
             startX + (c.$2 - minX + 0.5) * PieceTray._trayCell,
-            startY + widget.feelConfig.hitboxPad + (c.$1 - minY + 0.5) * PieceTray._trayCell,
+            startY +
+                widget.feelConfig.hitboxPad +
+                (c.$1 - minY + 0.5) * PieceTray._trayCell,
           ),
         )
         .toList();
@@ -175,7 +176,9 @@ class _PieceTrayState extends State<PieceTray> {
   Offset _itemCenterGlobal(int i) {
     final box = context.findRenderObject() as RenderBox;
     final contentCenterX =
-        _contentItemStartX(i) + widget.feelConfig.hitboxPad + _pieceDrawWidth(i) / 2;
+        _contentItemStartX(i) +
+        widget.feelConfig.hitboxPad +
+        _pieceDrawWidth(i) / 2;
     const contentTopY = 8.0; // scrollPadding.top
     final contentCenterY =
         contentTopY + widget.feelConfig.hitboxPad + _pieceDrawHeight(i) / 2;
@@ -194,7 +197,8 @@ class _PieceTrayState extends State<PieceTray> {
     final hRad = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
     final upRad = widget.feelConfig.trayPickupRadius * PieceTray._trayCell;
     final downRad =
-        (widget.feelConfig.trayPickupRadius + widget.feelConfig.trayPickupDownBonus) *
+        (widget.feelConfig.trayPickupRadius +
+            widget.feelConfig.trayPickupDownBonus) *
         PieceTray._trayCell;
     int? bestIndex;
     double bestDist = double.infinity;
@@ -297,8 +301,9 @@ class _PieceTrayState extends State<PieceTray> {
                       : Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Padding(
-                            padding:
-                                EdgeInsets.all(widget.feelConfig.hitboxPad),
+                            padding: EdgeInsets.all(
+                              widget.feelConfig.hitboxPad,
+                            ),
                             child: CustomPaint(
                               size: Size(
                                 _pieceDrawWidth(i),

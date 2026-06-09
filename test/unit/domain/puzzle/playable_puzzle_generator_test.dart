@@ -35,43 +35,38 @@ void main() {
           }
         });
 
-        test(
-          'seed 1..1000 で全件 Ok かつ単連結（リトライ予算の充足証明）',
-          () {
-            var errCount = 0;
-            var holeCount = 0;
-            for (var seed = 1; seed <= 1000; seed++) {
-              final result = PlayablePuzzleGenerator.generate(
-                difficulty: difficulty,
-                seed: seed,
-              );
-              switch (result) {
-                case Ok(:final value):
-                  if (!isFrameSimplyConnected(value.puzzle.frame)) holeCount++;
-                case Err():
-                  errCount++;
-              }
+        test('seed 1..1000 で全件 Ok かつ単連結（リトライ予算の充足証明）', () {
+          var errCount = 0;
+          var holeCount = 0;
+          for (var seed = 1; seed <= 1000; seed++) {
+            final result = PlayablePuzzleGenerator.generate(
+              difficulty: difficulty,
+              seed: seed,
+            );
+            switch (result) {
+              case Ok(:final value):
+                if (!isFrameSimplyConnected(value.puzzle.frame)) holeCount++;
+              case Err():
+                errCount++;
             }
-            print(
-              '[PlayablePuzzleGenerator 保証] ${difficulty.name}: '
-              'seeds 1..1000, err=$errCount, hole=$holeCount',
-            );
-            expect(
-              errCount,
-              0,
-              reason:
-                  '${difficulty.name}: seed 1..1000 で Err は 0 件のはず。'
-                  'Err が出た場合はリトライ予算 $maxFrameRetries 回が不足している。',
-            );
-            expect(
-              holeCount,
-              0,
-              reason:
-                  '${difficulty.name}: 単連結でない枠がゲームに届いてはいけない。',
-            );
-          },
-          tags: ['slow'],
-        );
+          }
+          print(
+            '[PlayablePuzzleGenerator 保証] ${difficulty.name}: '
+            'seeds 1..1000, err=$errCount, hole=$holeCount',
+          );
+          expect(
+            errCount,
+            0,
+            reason:
+                '${difficulty.name}: seed 1..1000 で Err は 0 件のはず。'
+                'Err が出た場合はリトライ予算 $maxFrameRetries 回が不足している。',
+          );
+          expect(
+            holeCount,
+            0,
+            reason: '${difficulty.name}: 単連結でない枠がゲームに届いてはいけない。',
+          );
+        }, tags: ['slow']);
       });
     }
   });

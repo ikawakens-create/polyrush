@@ -23,8 +23,7 @@ void main() {
               isA<Ok<VerifiedPuzzle, CompactPuzzleError>>(),
               reason: '${difficulty.name}/seed=$s: Ok を返すこと',
             );
-            final vp =
-                (result as Ok<VerifiedPuzzle, CompactPuzzleError>).value;
+            final vp = (result as Ok<VerifiedPuzzle, CompactPuzzleError>).value;
             expect(
               vp.solutionCount,
               inInclusiveRange(1, 3),
@@ -47,8 +46,7 @@ void main() {
                 difficulty.minTotalCells,
                 difficulty.maxTotalCells,
               ),
-              reason:
-                  '${difficulty.name}/seed=$s: frame のセル数が難易度範囲内',
+              reason: '${difficulty.name}/seed=$s: frame のセル数が難易度範囲内',
             );
           });
         }
@@ -75,11 +73,9 @@ void main() {
           expect(
             result,
             isA<Ok<VerifiedPuzzle, CompactPuzzleError>>(),
-            reason:
-                '${difficulty.name}/seed=$seed: Ok を返すこと（充填率計測の前提）',
+            reason: '${difficulty.name}/seed=$seed: Ok を返すこと（充填率計測の前提）',
           );
-          final vp =
-              (result as Ok<VerifiedPuzzle, CompactPuzzleError>).value;
+          final vp = (result as Ok<VerifiedPuzzle, CompactPuzzleError>).value;
           final bb = vp.puzzle.boundingBox;
           final area = (bb.maxX - bb.minX + 1) * (bb.maxY - bb.minY + 1);
           final fillRate = vp.puzzle.frame.length / area;
@@ -87,7 +83,8 @@ void main() {
           expect(
             fillRate,
             greaterThanOrEqualTo(0.40),
-            reason: '${difficulty.name}/seed=$seed: 個別充填率が 0.40 以上'
+            reason:
+                '${difficulty.name}/seed=$seed: 個別充填率が 0.40 以上'
                 '（昔の 30% 台が解消されたことの確認）',
           );
 
@@ -98,7 +95,8 @@ void main() {
         expect(
           avgFillRate,
           greaterThanOrEqualTo(0.55),
-          reason: '${difficulty.name}: 平均充填率が 0.55 以上'
+          reason:
+              '${difficulty.name}: 平均充填率が 0.55 以上'
               '（接触辺数最大化の効果。本物平均は 0.72）',
         );
       });
@@ -159,7 +157,8 @@ void main() {
           expect(
             result,
             isA<Ok<VerifiedPuzzle, CompactPuzzleError>>(),
-            reason: '${difficulty.name}/seed=$seed: '
+            reason:
+                '${difficulty.name}/seed=$seed: '
                 'maxCompactRetries=8 でリトライ予算が足りること（ADR-0010 申し送り）',
           );
         }
@@ -253,17 +252,20 @@ void main() {
           expect(
             result,
             isA<Ok<VerifiedPuzzle, CompactPuzzleError>>(),
-            reason: '${difficulty.name}/seed=$seed: '
+            reason:
+                '${difficulty.name}/seed=$seed: '
                 'dedup 制約追加後も Err が増えていないこと',
           );
           if (result is Ok<VerifiedPuzzle, CompactPuzzleError>) {
             // (A) 各パズル内に source.id の重複がないこと。
-            final ids =
-                result.value.puzzle.blocks.map((b) => b.source.id).toList();
+            final ids = result.value.puzzle.blocks
+                .map((b) => b.source.id)
+                .toList();
             expect(
               ids.toSet().length,
               equals(ids.length),
-              reason: '${difficulty.name}/seed=$seed: '
+              reason:
+                  '${difficulty.name}/seed=$seed: '
                   'blocks 内の source.id がすべて異なること（重複なし）',
             );
           }

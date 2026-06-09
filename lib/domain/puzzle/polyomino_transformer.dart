@@ -19,11 +19,10 @@ class PolyominoTransformer {
     assert(p.cells.isNotEmpty, 'Polyomino must have at least one cell');
     final minY = p.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final minX = p.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-    final shifted =
-        p.cells.map((c) => (c.$1 - minY, c.$2 - minX)).toList()
-          ..sort(
-            (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
-          );
+    final shifted = p.cells.map((c) => (c.$1 - minY, c.$2 - minX)).toList()
+      ..sort(
+        (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
+      );
     return PolyominoData(id: p.id, size: p.size, cells: shifted);
   }
 

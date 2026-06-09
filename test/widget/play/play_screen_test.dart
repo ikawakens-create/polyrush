@@ -65,11 +65,7 @@ void main() {
 
       testWidgets('初期状態で手触り調整パネルが表示されない', (tester) async {
         await tester.pumpWidget(const MaterialApp(home: PlayScreen()));
-        expect(
-          find.text('手触り調整'),
-          findsNothing,
-          reason: '初期状態では調整パネルが閉じている',
-        );
+        expect(find.text('手触り調整'), findsNothing, reason: '初期状態では調整パネルが閉じている');
       });
     });
 
@@ -83,11 +79,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: 'ドラッグ中に例外が発生しない',
-        );
+        expect(tester.takeException(), isNull, reason: 'ドラッグ中に例外が発生しない');
         expect(
           find.byKey(const ValueKey('tray-piece-0')),
           findsOneWidget,
@@ -169,11 +161,7 @@ void main() {
         await gesture.up();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: '微小ドラッグでも例外が発生しない',
-        );
+        expect(tester.takeException(), isNull, reason: '微小ドラッグでも例外が発生しない');
         // ピースはまだトレイにある（掴まれていない）
         expect(
           find.byKey(const ValueKey('tray-piece-0')),

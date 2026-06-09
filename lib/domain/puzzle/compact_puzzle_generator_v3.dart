@@ -152,8 +152,7 @@ class CompactPuzzleGeneratorV3 {
         firstOrientations[random.nextInt(firstOrientations.length)];
     final firstCells = List<Cell>.from(firstOriented.cells)
       ..sort(
-        (a, b) =>
-            a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
+        (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
       );
     placedCells.addAll(firstCells);
     blocks.add(
@@ -168,16 +167,19 @@ class CompactPuzzleGeneratorV3 {
 
     final blockCount = difficulty.blockCount;
     for (var i = 1; i < blockCount; i++) {
-      final availablePool =
-          pool.where((p) => !usedSourceIds.contains(p.id)).toList();
+      final availablePool = pool
+          .where((p) => !usedSourceIds.contains(p.id))
+          .toList();
       var placed = false;
       for (var attempt = 0; attempt < 10; attempt++) {
         if (availablePool.isEmpty) break;
         final piece = availablePool[random.nextInt(availablePool.length)];
         final orientations = orientationsOf(piece);
         final oriented = orientations[random.nextInt(orientations.length)];
-        final candidates =
-            PuzzleGenerator.listPlacementCandidates(oriented, placedCells);
+        final candidates = PuzzleGenerator.listPlacementCandidates(
+          oriented,
+          placedCells,
+        );
 
         if (candidates.isEmpty) continue;
 
@@ -209,14 +211,10 @@ class CompactPuzzleGeneratorV3 {
       if (!placed) return null;
     }
 
-    final minY =
-        placedCells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-    final maxY =
-        placedCells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
-    final minX =
-        placedCells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-    final maxX =
-        placedCells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
+    final minY = placedCells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+    final maxY = placedCells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
+    final minX = placedCells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+    final maxX = placedCells.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
 
     return GeneratedPuzzle(
       frame: placedCells,
@@ -255,10 +253,7 @@ class CompactPuzzleGeneratorV3 {
   ///
   /// candidate の各セルの4近傍が placedCells に含まれる場合にカウントする。
   /// candidate 内のセル同士の隣接は数えない（既配置との接触辺のみ）。
-  static int _countContactEdges(
-    List<Cell> candidate,
-    Set<Cell> placedCells,
-  ) {
+  static int _countContactEdges(List<Cell> candidate, Set<Cell> placedCells) {
     var count = 0;
     for (final c in candidate) {
       if (placedCells.contains((c.$1 - 1, c.$2))) count++;

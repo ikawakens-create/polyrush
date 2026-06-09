@@ -17,14 +17,10 @@ const double _kOriginYRatio = 0.4;
 
 /// クリア時に画面全体に重ねる紙吹雪オーバーレイ。
 ///
-/// [active] が false→true になった瞬間に1回バーストする。
+/// [active] が true の間、サイズ確定後に1回バーストする。
 /// [IgnorePointer] でラップしているため操作を妨げない。
 class ConfettiOverlay extends StatefulWidget {
-  const ConfettiOverlay({
-    super.key,
-    required this.active,
-    this.onFinished,
-  });
+  const ConfettiOverlay({super.key, required this.active, this.onFinished});
 
   final bool active;
   final VoidCallback? onFinished;
@@ -37,7 +33,9 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   List<ConfettiParticle> _particles = const [];
-  Size _size = Size.zero;
+
+  // このバーストを生成済みか（active の1サイクルにつき1回だけ生成する）
+  bool _burstSpawned = false;
 
   @override
   void initState() {
@@ -58,11 +56,11 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
   @override
   void didUpdateWidget(covariant ConfettiOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!oldWidget.active && widget.active) {
-      // 次フレームで LayoutBuilder が確定してから _size を使う
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && widget.active) _startBurst();
-      });
+    // active が false に戻ったら次のクリアに備えてリセット
+    if (oldWidget.active && !widget.active) {
+      _burstSpawned = false;
+      _particles = const [];
+      _controller.reset();
     }
   }
 
@@ -72,18 +70,20 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
     super.dispose();
   }
 
-  void _startBurst() {
-    if (_size == Size.zero) return;
-    setState(() {
-      _particles = generateBurst(
-        originX: _size.width / 2,
-        originY: _size.height * _kOriginYRatio,
-        count: _kConfig.count,
-        seed: DateTime.now().millisecondsSinceEpoch,
-        config: _kConfig,
-      );
+  void _spawnBurst(Size size) {
+    if (size.isEmpty) return;
+    _burstSpawned = true;
+    _particles = generateBurst(
+      originX: size.width / 2,
+      originY: size.height * _kOriginYRatio,
+      count: _kConfig.count,
+      seed: DateTime.now().millisecondsSinceEpoch,
+      config: _kConfig,
+    );
+    // build 中の呼び出しを避けるため、次フレームで forward する
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.active) _controller.forward(from: 0);
     });
-    _controller.forward(from: 0);
   }
 
   @override
@@ -91,10 +91,17 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
     return IgnorePointer(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          _size = Size(constraints.maxWidth, constraints.maxHeight);
+          final size = Size(constraints.maxWidth, constraints.maxHeight);
+
+          // active かつ未生成かつサイズ確定 → このサイズで生成する
+          if (widget.active && !_burstSpawned && !size.isEmpty) {
+            _spawnBurst(size);
+          }
+
           if (!widget.active || _particles.isEmpty) {
             return const SizedBox.expand();
           }
+
           return AnimatedBuilder(
             animation: _controller,
             builder: (context, _) {
@@ -128,10 +135,10 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final p in particles) {
-      final opacity = particleOpacityAt(t, config.lifetimeSeconds);
-      if (opacity <= 0) continue;
+    final opacity = particleOpacityAt(t, config.lifetimeSeconds);
+    if (opacity <= 0) return;
 
+    for (final p in particles) {
       final pos = particlePositionAt(p, t, config.gravity);
       final angle = particleRotationAt(p, t);
       final color = _confettiColors[p.colorIndex % _confettiColors.length]
@@ -144,7 +151,6 @@ class _ConfettiPainter extends CustomPainter {
       canvas.save();
       canvas.translate(pos.x, pos.y);
       canvas.rotate(angle);
-      // 紙片: 縦長の長方形
       canvas.drawRect(
         Rect.fromCenter(
           center: Offset.zero,

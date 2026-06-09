@@ -52,11 +52,7 @@ void main() {
     const lifetime = 1.4;
 
     test('t=0 で 1.0', () {
-      expect(
-        particleOpacityAt(0, lifetime),
-        1.0,
-        reason: 't=0 は完全不透明',
-      );
+      expect(particleOpacityAt(0, lifetime), 1.0, reason: 't=0 は完全不透明');
     });
 
     test('t=lifetime で 0.0', () {
@@ -73,11 +69,7 @@ void main() {
     });
 
     test('t<0 は 1.0 にクランプ', () {
-      expect(
-        particleOpacityAt(-0.1, lifetime),
-        1.0,
-        reason: '負の時刻は 1.0 にクランプ',
-      );
+      expect(particleOpacityAt(-0.1, lifetime), 1.0, reason: '負の時刻は 1.0 にクランプ');
     });
 
     test('t>lifetime は 0.0 にクランプ', () {
@@ -95,12 +87,12 @@ void main() {
     const originY = 300.0;
 
     List<ConfettiParticle> burst({int seed = 42}) => generateBurst(
-          originX: originX,
-          originY: originY,
-          count: config.count,
-          seed: seed,
-          config: config,
-        );
+      originX: originX,
+      originY: originY,
+      count: config.count,
+      seed: seed,
+      config: config,
+    );
 
     test('同一 seed で同一結果（再現性）', () {
       final a = burst(seed: 99);
@@ -121,22 +113,24 @@ void main() {
     });
 
     test('count 個生成される', () {
-      expect(
-        burst().length,
-        config.count,
-        reason: '生成数が count と等しい',
-      );
+      expect(burst().length, config.count, reason: '生成数が count と等しい');
     });
 
     test('colorIndex が 0..4 に収まる', () {
       for (final p in burst()) {
-        expect(p.colorIndex, inInclusiveRange(0, 4), reason: 'colorIndex は 0..4');
+        expect(
+          p.colorIndex,
+          inInclusiveRange(0, 4),
+          reason: 'colorIndex は 0..4',
+        );
       }
     });
 
     test('速度の大きさが minSpeed..maxSpeed に収まる', () {
       for (final p in burst()) {
-        final speed = sqrt(p.velocityX * p.velocityX + p.velocityY * p.velocityY);
+        final speed = sqrt(
+          p.velocityX * p.velocityX + p.velocityY * p.velocityY,
+        );
         expect(
           speed,
           greaterThanOrEqualTo(config.minSpeed - 1e-9),

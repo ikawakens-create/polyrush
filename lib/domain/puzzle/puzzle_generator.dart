@@ -37,8 +37,8 @@ class GeneratedPuzzle {
     required List<PlacedBlock> blocks,
     required this.seed,
     required this.difficulty,
-  })  : frame = Set.unmodifiable(frame),
-        blocks = List.unmodifiable(blocks);
+  }) : frame = Set.unmodifiable(frame),
+       blocks = List.unmodifiable(blocks);
 
   /// 全ブロックの和集合（パズル枠）。
   final Set<Cell> frame;
@@ -186,13 +186,11 @@ class PuzzleGenerator {
       for (final p in oriented.cells) {
         final dy = g.$1 - p.$1;
         final dx = g.$2 - p.$2;
-        final translated = oriented.cells
-            .map((c) => (c.$1 + dy, c.$2 + dx))
-            .toList()
-          ..sort(
-            (a, b) =>
-                a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
-          );
+        final translated =
+            oriented.cells.map((c) => (c.$1 + dy, c.$2 + dx)).toList()..sort(
+              (a, b) =>
+                  a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
+            );
 
         // (A) 既配置セルと重なっていない
         if (translated.any((c) => placedCells.contains(c))) continue;
@@ -219,9 +217,9 @@ class PuzzleGenerator {
   }
 
   static List<Cell> _neighbors(Cell cell) => [
-        (cell.$1 - 1, cell.$2),
-        (cell.$1 + 1, cell.$2),
-        (cell.$1, cell.$2 - 1),
-        (cell.$1, cell.$2 + 1),
-      ];
+    (cell.$1 - 1, cell.$2),
+    (cell.$1 + 1, cell.$2),
+    (cell.$1, cell.$2 - 1),
+    (cell.$1, cell.$2 + 1),
+  ];
 }
