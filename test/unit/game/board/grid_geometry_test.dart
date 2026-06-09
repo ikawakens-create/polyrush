@@ -153,11 +153,10 @@ void main() {
     });
 
     test('盤の左上角 (0,0) は最初のセルに属する', () {
-      expect(
-        geo.pixelToCell(const Offset(0, 0)),
-        (0, 0),
-        reason: '(0,0) は cell (0,0) に属す',
-      );
+      expect(geo.pixelToCell(const Offset(0, 0)), (
+        0,
+        0,
+      ), reason: '(0,0) は cell (0,0) に属す');
     });
 
     test('右端ちょうど (400.0, 200.0) は null（半開区間）', () {
@@ -199,11 +198,7 @@ void main() {
         closeTo(rect00.height, 1e-10),
         reason: 'cellRect の幅と高さが等しい（正方形）',
       );
-      expect(
-        rect11.width,
-        closeTo(rect11.height, 1e-10),
-        reason: 'どのセルも正方形',
-      );
+      expect(rect11.width, closeTo(rect11.height, 1e-10), reason: 'どのセルも正方形');
     });
 
     test('横長 boundingBox (rows=2, cols=5)', () {
@@ -281,10 +276,16 @@ void main() {
     });
 
     test('boardOrigin == (20, 65)', () {
-      expect(geo.boardOrigin.dx, closeTo(20.0, 1e-10),
-          reason: '盤幅360 == 使用可能幅360。左余白は padding ぶんの 20');
-      expect(geo.boardOrigin.dy, closeTo(65.0, 1e-10),
-          reason: 'padding 20 + 上下中央寄せ (360-270)/2 = 45 → 65');
+      expect(
+        geo.boardOrigin.dx,
+        closeTo(20.0, 1e-10),
+        reason: '盤幅360 == 使用可能幅360。左余白は padding ぶんの 20',
+      );
+      expect(
+        geo.boardOrigin.dy,
+        closeTo(65.0, 1e-10),
+        reason: 'padding 20 + 上下中央寄せ (360-270)/2 = 45 → 65',
+      );
     });
 
     test('padding 込みでも全セル往復一致', () {
@@ -292,15 +293,21 @@ void main() {
         for (var col = 0; col < geo.cols; col++) {
           final cell = (geo.originRow + row, geo.originCol + col);
           final result = geo.pixelToCell(geo.cellCenter(cell));
-          expect(result, cell,
-              reason: 'cell $cell の中心を逆引きして $cell に戻らない (got $result)');
+          expect(
+            result,
+            cell,
+            reason: 'cell $cell の中心を逆引きして $cell に戻らない (got $result)',
+          );
         }
       }
     });
 
     test('余白の中（盤の手前）は null', () {
-      expect(geo.pixelToCell(const Offset(10, 10)), isNull,
-          reason: '(10,10) は boardOrigin(20,65) より手前＝余白内なので盤外');
+      expect(
+        geo.pixelToCell(const Offset(10, 10)),
+        isNull,
+        reason: '(10,10) は boardOrigin(20,65) より手前＝余白内なので盤外',
+      );
     });
   });
 }

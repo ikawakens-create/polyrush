@@ -38,7 +38,9 @@ void main() {
         cells: [(2, 0), (2, 1), (2, 2)],
       );
       final result = PolyominoTransformer.normalize(shifted);
-      final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+      final minY = result.cells
+          .map((c) => c.$1)
+          .reduce((a, b) => a < b ? a : b);
       expect(minY, 0);
     });
 
@@ -49,7 +51,9 @@ void main() {
         cells: [(0, 3), (0, 4), (0, 5)],
       );
       final result = PolyominoTransformer.normalize(shifted);
-      final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+      final minX = result.cells
+          .map((c) => c.$2)
+          .reduce((a, b) => a < b ? a : b);
       expect(minX, 0);
     });
 
@@ -66,7 +70,9 @@ void main() {
     test('全19種: normalize 後 minY == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.normalize(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
       }
     });
@@ -74,7 +80,9 @@ void main() {
     test('全19種: normalize 後 minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.normalize(p);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
     });
@@ -117,7 +125,9 @@ void main() {
     test('回転後 minY == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.rotate90(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
       }
     });
@@ -125,7 +135,9 @@ void main() {
     test('回転後 minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.rotate90(p);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
     });
@@ -166,8 +178,9 @@ void main() {
     test('rotate90 を2回適用した結果と等しい', () {
       for (final p in kAllPolyominoes) {
         final via180 = PolyominoTransformer.rotate180(p);
-        final via90x2 =
-            PolyominoTransformer.rotate90(PolyominoTransformer.rotate90(p));
+        final via90x2 = PolyominoTransformer.rotate90(
+          PolyominoTransformer.rotate90(p),
+        );
         expect(
           via180.cells,
           via90x2.cells,
@@ -179,8 +192,12 @@ void main() {
     test('rotate180 後 minY == 0 かつ minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.rotate180(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
@@ -216,8 +233,12 @@ void main() {
     test('rotate270 後 minY == 0 かつ minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.rotate270(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
@@ -245,7 +266,11 @@ void main() {
         for (var i = 0; i < 4; i++) {
           current = PolyominoTransformer.rotate90(current);
         }
-        expect(current.cells, p.cells, reason: '${p.id}: 4 rotations did not return to original');
+        expect(
+          current.cells,
+          p.cells,
+          reason: '${p.id}: 4 rotations did not return to original',
+        );
       }
     });
   });
@@ -269,8 +294,12 @@ void main() {
     test('flipH 後 minY == 0 かつ minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.flipHorizontal(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
@@ -320,8 +349,12 @@ void main() {
     test('flipV 後 minY == 0 かつ minX == 0', () {
       for (final p in kAllPolyominoes) {
         final result = PolyominoTransformer.flipVertical(p);
-        final minY = result.cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-        final minX = result.cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
+        final minY = result.cells
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
+        final minX = result.cells
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
         expect(minY, 0, reason: '${p.id}: minY=$minY');
         expect(minX, 0, reason: '${p.id}: minX=$minX');
       }
@@ -521,8 +554,9 @@ void main() {
 
     test('任意の2要素は areEquivalent で同値', () {
       for (final p in kAllPolyominoes) {
-        final orientations =
-            PolyominoTransformer.allUniqueOrientations(p).toList();
+        final orientations = PolyominoTransformer.allUniqueOrientations(
+          p,
+        ).toList();
         for (var i = 0; i < orientations.length; i++) {
           for (var j = i + 1; j < orientations.length; j++) {
             expect(
@@ -540,8 +574,9 @@ void main() {
 
     test('要素同士の cells リストは全て異なる', () {
       for (final p in kAllPolyominoes) {
-        final orientations =
-            PolyominoTransformer.allUniqueOrientations(p).toList();
+        final orientations = PolyominoTransformer.allUniqueOrientations(
+          p,
+        ).toList();
         final keys = orientations.map((q) => q.cells.toString()).toList();
         expect(
           keys.toSet().length,
@@ -644,8 +679,7 @@ void main() {
           expect(
             PolyominoTransformer.areEquivalent(a, b),
             expected,
-            reason:
-                '${a.id} vs ${b.id}: expected areEquivalent=$expected',
+            reason: '${a.id} vs ${b.id}: expected areEquivalent=$expected',
           );
         }
       }

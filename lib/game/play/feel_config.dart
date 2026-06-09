@@ -69,18 +69,17 @@ class FeelConfig {
     double? grabDirectionRatio,
     double? trayPickupRadius,
     double? trayPickupDownBonus,
-  }) =>
-      FeelConfig(
-        fingerOffset: fingerOffset ?? this.fingerOffset,
-        hitboxPad: hitboxPad ?? this.hitboxPad,
-        pickupScale: pickupScale ?? this.pickupScale,
-        pickupMs: pickupMs ?? this.pickupMs,
-        returnMs: returnMs ?? this.returnMs,
-        snapRadius: snapRadius ?? this.snapRadius,
-        dragStartSlop: dragStartSlop ?? this.dragStartSlop,
-        pickupRadius: pickupRadius ?? this.pickupRadius,
-        grabDirectionRatio: grabDirectionRatio ?? this.grabDirectionRatio,
-        trayPickupRadius: trayPickupRadius ?? this.trayPickupRadius,
-        trayPickupDownBonus: trayPickupDownBonus ?? this.trayPickupDownBonus,
-      );
+  }) => FeelConfig(
+    fingerOffset: fingerOffset ?? this.fingerOffset,
+    hitboxPad: hitboxPad ?? this.hitboxPad,
+    pickupScale: pickupScale ?? this.pickupScale,
+    pickupMs: pickupMs ?? this.pickupMs,
+    returnMs: returnMs ?? this.returnMs,
+    snapRadius: snapRadius ?? this.snapRadius,
+    dragStartSlop: dragStartSlop ?? this.dragStartSlop,
+    pickupRadius: pickupRadius ?? this.pickupRadius,
+    grabDirectionRatio: grabDirectionRatio ?? this.grabDirectionRatio,
+    trayPickupRadius: trayPickupRadius ?? this.trayPickupRadius,
+    trayPickupDownBonus: trayPickupDownBonus ?? this.trayPickupDownBonus,
+  );
 }

@@ -54,9 +54,7 @@ class ConfettiParticle {
 ) {
   return (
     x: p.originX + p.velocityX * tSeconds,
-    y: p.originY +
-        p.velocityY * tSeconds +
-        0.5 * gravity * tSeconds * tSeconds,
+    y: p.originY + p.velocityY * tSeconds + 0.5 * gravity * tSeconds * tSeconds,
   );
 }
 
@@ -85,7 +83,8 @@ List<ConfettiParticle> generateBurst({
 
   for (int i = 0; i < count; i++) {
     final speed =
-        config.minSpeed + rng.nextDouble() * (config.maxSpeed - config.minSpeed);
+        config.minSpeed +
+        rng.nextDouble() * (config.maxSpeed - config.minSpeed);
 
     // 70% の確率で上半分（-π..0）に向かわせ、打ち上がってから落ちる見栄えにする
     final double angle;
@@ -106,16 +105,18 @@ List<ConfettiParticle> generateBurst({
     final angularVelocity =
         (rng.nextDouble() * 2.0 - 1.0) * config.maxAngularSpeed;
 
-    particles.add(ConfettiParticle(
-      originX: originX,
-      originY: originY,
-      velocityX: vx,
-      velocityY: vy,
-      colorIndex: colorIndex,
-      rotation: rotation,
-      angularVelocity: angularVelocity,
-      size: size,
-    ));
+    particles.add(
+      ConfettiParticle(
+        originX: originX,
+        originY: originY,
+        velocityX: vx,
+        velocityY: vy,
+        colorIndex: colorIndex,
+        rotation: rotation,
+        angularVelocity: angularVelocity,
+        size: size,
+      ),
+    );
   }
 
   return particles;

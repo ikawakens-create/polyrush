@@ -70,7 +70,8 @@ void main() {
             expect(
               ids.toSet().length,
               equals(ids.length),
-              reason: '${difficulty.name}/seed=$seed: blocks 内の source.id がすべて異なること（重複なし）',
+              reason:
+                  '${difficulty.name}/seed=$seed: blocks 内の source.id がすべて異なること（重複なし）',
             );
           } else {
             v3Err++;
@@ -93,7 +94,8 @@ void main() {
         expect(
           v3Err,
           equals(0),
-          reason: 'maxCompactRetries=8 でリトライ予算が足りること。'
+          reason:
+              'maxCompactRetries=8 でリトライ予算が足りること。'
               '失敗seed: $errDetails',
         );
       });

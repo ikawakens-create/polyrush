@@ -106,47 +106,44 @@ void main() {
 
   // ─── 3. 回帰テスト ────────────────────────────────────────────────────────
   group('回帰テスト', () {
-    test(
-      'easy/seed=2: 同一シードで決定論的に同じ有効パズルを返す（救済の検証ではない）',
-      () {
-        // このテストは「generate が救済経路を実際に踏んだか」は主張しない。
-        // 検証するのは (1) 決定論性 と (2) 出力の妥当性 のみ。
-        final r1 = VerifiedPuzzleGenerator.generate(
-          difficulty: Difficulty.easy,
-          seed: 2,
-        );
-        final r2 = VerifiedPuzzleGenerator.generate(
-          difficulty: Difficulty.easy,
-          seed: 2,
-        );
+    test('easy/seed=2: 同一シードで決定論的に同じ有効パズルを返す（救済の検証ではない）', () {
+      // このテストは「generate が救済経路を実際に踏んだか」は主張しない。
+      // 検証するのは (1) 決定論性 と (2) 出力の妥当性 のみ。
+      final r1 = VerifiedPuzzleGenerator.generate(
+        difficulty: Difficulty.easy,
+        seed: 2,
+      );
+      final r2 = VerifiedPuzzleGenerator.generate(
+        difficulty: Difficulty.easy,
+        seed: 2,
+      );
+      expect(
+        r1,
+        isA<Ok<VerifiedPuzzle, GenerationError>>(),
+        reason: 'easy/seed=2: 1 回目が Ok を返すこと',
+      );
+      expect(
+        r2,
+        isA<Ok<VerifiedPuzzle, GenerationError>>(),
+        reason: 'easy/seed=2: 2 回目が Ok を返すこと',
+      );
+      final v1 = (r1 as Ok<VerifiedPuzzle, GenerationError>).value;
+      final v2 = (r2 as Ok<VerifiedPuzzle, GenerationError>).value;
+      // (1) 決定論: 同じシードで 2 回呼ぶと frame が完全一致する。
+      expect(
+        v1.puzzle.frame,
+        equals(v2.puzzle.frame),
+        reason: 'easy/seed=2: 決定論的に同じ frame が得られること',
+      );
+      // (2) 有効な良問: 通常採用時（isFallback=false）は解数 ≤ 3。
+      if (!v1.isFallback) {
         expect(
-          r1,
-          isA<Ok<VerifiedPuzzle, GenerationError>>(),
-          reason: 'easy/seed=2: 1 回目が Ok を返すこと',
+          v1.solutionCount,
+          lessThanOrEqualTo(3),
+          reason: 'easy/seed=2: 通常採用時の解数は 3 以下（有効な良問）',
         );
-        expect(
-          r2,
-          isA<Ok<VerifiedPuzzle, GenerationError>>(),
-          reason: 'easy/seed=2: 2 回目が Ok を返すこと',
-        );
-        final v1 = (r1 as Ok<VerifiedPuzzle, GenerationError>).value;
-        final v2 = (r2 as Ok<VerifiedPuzzle, GenerationError>).value;
-        // (1) 決定論: 同じシードで 2 回呼ぶと frame が完全一致する。
-        expect(
-          v1.puzzle.frame,
-          equals(v2.puzzle.frame),
-          reason: 'easy/seed=2: 決定論的に同じ frame が得られること',
-        );
-        // (2) 有効な良問: 通常採用時（isFallback=false）は解数 ≤ 3。
-        if (!v1.isFallback) {
-          expect(
-            v1.solutionCount,
-            lessThanOrEqualTo(3),
-            reason: 'easy/seed=2: 通常採用時の解数は 3 以下（有効な良問）',
-          );
-        }
-      },
-    );
+      }
+    });
   });
 
   // ─── 4. フォールバック ────────────────────────────────────────────────────
@@ -156,12 +153,8 @@ void main() {
       final result = VerifiedPuzzleGenerator.generate(
         difficulty: Difficulty.easy,
         seed: 0,
-        overrideCountSolutions: ({
-          required frame,
-          required shapes,
-          required limit,
-        }) =>
-            4,
+        overrideCountSolutions:
+            ({required frame, required shapes, required limit}) => 4,
       );
       expect(
         result,
@@ -169,11 +162,7 @@ void main() {
         reason: 'フォールバック時も Ok を返す',
       );
       final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
-      expect(
-        vp.isFallback,
-        isTrue,
-        reason: '全試行で却下されたので isFallback=true',
-      );
+      expect(vp.isFallback, isTrue, reason: '全試行で却下されたので isFallback=true');
       expect(
         vp.solutionCount,
         greaterThanOrEqualTo(4),
@@ -195,14 +184,11 @@ void main() {
         seed: 0,
         overrideConstruct: (d, s) =>
             PuzzleGenerator.construct(difficulty: d, seed: 0),
-        overrideCountSolutions: ({
-          required frame,
-          required shapes,
-          required limit,
-        }) {
-          countCallCount++;
-          return countCallCount == 1 ? 6 : 4;
-        },
+        overrideCountSolutions:
+            ({required frame, required shapes, required limit}) {
+              countCallCount++;
+              return countCallCount == 1 ? 6 : 4;
+            },
         overrideMaxRetries: 2,
       );
       final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
@@ -250,12 +236,8 @@ void main() {
           }
           throw const GenerationFailedException('forced');
         },
-        overrideCountSolutions: ({
-          required frame,
-          required shapes,
-          required limit,
-        }) =>
-            1,
+        overrideCountSolutions:
+            ({required frame, required shapes, required limit}) => 1,
       );
       expect(result, isA<Ok<VerifiedPuzzle, GenerationError>>());
       final vp = (result as Ok<VerifiedPuzzle, GenerationError>).value;
@@ -276,12 +258,8 @@ void main() {
           constructCallCount++;
           return PuzzleGenerator.construct(difficulty: d, seed: 0);
         },
-        overrideCountSolutions: ({
-          required frame,
-          required shapes,
-          required limit,
-        }) =>
-            4,
+        overrideCountSolutions:
+            ({required frame, required shapes, required limit}) => 4,
         overrideMaxRetries: 1,
       );
       expect(
@@ -354,7 +332,8 @@ void main() {
       expect(
         count,
         equals(4),
-        reason: 'construct(easy, seed:2) の解数を実測値で固定。'
+        reason:
+            'construct(easy, seed:2) の解数を実測値で固定。'
             '「seed=2は解4」という従来の言い伝えの真偽をここで確定させる。',
       );
     });
@@ -383,7 +362,8 @@ void main() {
       expect(
         viaGenerate.puzzle.frame,
         isNot(equals(viaConstruct.frame)),
-        reason: 'generate は attempt0 からサブシード派生seedで construct を呼ぶため、'
+        reason:
+            'generate は attempt0 からサブシード派生seedで construct を呼ぶため、'
             'construct(easy,2) とは別パズルになる（＝seed=2の問題は救済ではなく迂回される）。',
       );
     });
@@ -442,14 +422,16 @@ void main() {
         expect(
           vp.attemptsUsed,
           greaterThan(1),
-          reason: '再生成が実際に走ったこと（救済経路を踏んだこと）の証拠。'
+          reason:
+              '再生成が実際に走ったこと（救済経路を踏んだこと）の証拠。'
               'attemptsUsed=1 に退行した場合、最初の試行が採用されており救済が起きていない。',
         );
         // (2) フォールバックではなく正規の救済で良問に収束したこと。
         expect(
           vp.isFallback,
           isFalse,
-          reason: 'フォールバックではなく正規の救済で良問に収束したこと。'
+          reason:
+              'フォールバックではなく正規の救済で良問に収束したこと。'
               'isFallback=true に退行した場合、全試行が解4以上になっており救済失敗。',
         );
         // (3) 救済後のパズルが採用基準（解3以下）を満たすこと。

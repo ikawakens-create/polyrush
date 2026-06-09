@@ -49,10 +49,12 @@ void main() {
           }
 
           final failRate = failCount / kMilestoneSeedCount;
-          final fallbackRate =
-              successCount > 0 ? fallbackCount / successCount : 0.0;
-          final avgAttempts =
-              successCount > 0 ? attemptsTotal / successCount : 0.0;
+          final fallbackRate = successCount > 0
+              ? fallbackCount / successCount
+              : 0.0;
+          final avgAttempts = successCount > 0
+              ? attemptsTotal / successCount
+              : 0.0;
           final dist1 = dist[1] ?? 0;
           final dist2 = dist[2] ?? 0;
           final dist3 = dist[3] ?? 0;
@@ -71,9 +73,7 @@ void main() {
             '${(fallbackRate * 100).toStringAsFixed(2)}%'
             '（成功$successCount件中）',
           );
-          print(
-            '解数分布          : 1解=$dist1 2解=$dist2 3解=$dist3 4以上=$dist4plus',
-          );
+          print('解数分布          : 1解=$dist1 2解=$dist2 3解=$dist3 4以上=$dist4plus');
           print(
             '試行回数(平均/最大): ${avgAttempts.toStringAsFixed(2)} / $attemptsMax',
           );

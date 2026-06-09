@@ -50,9 +50,13 @@ void main() {
       // #
       // ###
       final frame = <Cell>{
-        (0, 0), (0, 1), (0, 2),
+        (0, 0),
+        (0, 1),
+        (0, 2),
         (1, 0),
-        (2, 0), (2, 1), (2, 2),
+        (2, 0),
+        (2, 1),
+        (2, 2),
       };
       expect(
         isFrameSimplyConnected(frame),
@@ -69,9 +73,14 @@ void main() {
       // # #
       // ###
       final frame = <Cell>{
-        (0, 0), (0, 1), (0, 2),
-        (1, 0), (1, 2),
-        (2, 0), (2, 1), (2, 2),
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (1, 0),
+        (1, 2),
+        (2, 0),
+        (2, 1),
+        (2, 2),
       };
       expect(
         isFrameSimplyConnected(frame),
@@ -85,9 +94,17 @@ void main() {
       // # ##   ← (1,1) が穴
       // ####
       final frame = <Cell>{
-        (0, 0), (0, 1), (0, 2), (0, 3),
-        (1, 0), (1, 2), (1, 3),
-        (2, 0), (2, 1), (2, 2), (2, 3),
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (1, 0),
+        (1, 2),
+        (1, 3),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+        (2, 3),
       };
       expect(
         isFrameSimplyConnected(frame),
@@ -133,11 +150,7 @@ void main() {
   // ─── 4. 空 frame ──────────────────────────────────────────────────────────
   group('空 frame', () {
     test('空の Set は false', () {
-      expect(
-        isFrameSimplyConnected(<Cell>{}),
-        isFalse,
-        reason: '空の枠は単連結でない',
-      );
+      expect(isFrameSimplyConnected(<Cell>{}), isFalse, reason: '空の枠は単連結でない');
     });
   });
 }

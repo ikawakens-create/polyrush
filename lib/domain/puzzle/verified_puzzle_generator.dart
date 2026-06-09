@@ -97,30 +97,33 @@ class VerifiedPuzzleGenerator {
     required Difficulty difficulty,
     required int seed,
     @visibleForTesting
-    GeneratedPuzzle Function(Difficulty difficulty, int seed)? overrideConstruct,
+    GeneratedPuzzle Function(Difficulty difficulty, int seed)?
+    overrideConstruct,
     @visibleForTesting
     int Function({
       required Set<Cell> frame,
       required List<PolyominoData> shapes,
       required int limit,
-    })? overrideCountSolutions,
+    })?
+    overrideCountSolutions,
     @visibleForTesting int? overrideMaxRetries,
   }) {
     final maxRetries = overrideMaxRetries ?? maxVerificationRetries;
-    final doConstruct = overrideConstruct ??
+    final doConstruct =
+        overrideConstruct ??
         (Difficulty d, int s) =>
             PuzzleGenerator.construct(difficulty: d, seed: s);
-    final doCount = overrideCountSolutions ??
+    final doCount =
+        overrideCountSolutions ??
         ({
           required Set<Cell> frame,
           required List<PolyominoData> shapes,
           required int limit,
-        }) =>
-            PuzzleSolver.countSolutions(
-              frame: frame,
-              shapes: shapes,
-              limit: limit,
-            );
+        }) => PuzzleSolver.countSolutions(
+          frame: frame,
+          shapes: shapes,
+          limit: limit,
+        );
 
     GeneratedPuzzle? bestFallbackPuzzle;
     int bestFallbackCount = _solutionCountThreshold;

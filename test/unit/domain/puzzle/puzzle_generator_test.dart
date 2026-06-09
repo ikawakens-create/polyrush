@@ -116,16 +116,12 @@ void main() {
   // ─── 3. listPlacementCandidates ──────────────────────────────────────────
   group('listPlacementCandidates', () {
     test('単一セル配置済みに I3 を置く候補が存在する', () {
-      final candidates = PuzzleGenerator.listPlacementCandidates(
-        kI3,
-        {(0, 0)},
-      );
+      final candidates = PuzzleGenerator.listPlacementCandidates(kI3, {(0, 0)});
       expect(candidates, isNotEmpty, reason: '隣接配置の候補は必ず存在する');
     });
     test('全候補が既配置セルと重ならない (条件A)', () {
       final placed = {(0, 0), (0, 1), (1, 0)};
-      final candidates =
-          PuzzleGenerator.listPlacementCandidates(kT4, placed);
+      final candidates = PuzzleGenerator.listPlacementCandidates(kT4, placed);
       for (final candidate in candidates) {
         final overlap = candidate.where(placed.contains).toList();
         expect(overlap, isEmpty, reason: '候補 $candidate に重複あり');
@@ -133,8 +129,7 @@ void main() {
     });
     test('全候補が既配置セルと少なくとも1辺隣接する (条件B)', () {
       final placed = {(0, 0), (0, 1), (1, 0)};
-      final candidates =
-          PuzzleGenerator.listPlacementCandidates(kL4, placed);
+      final candidates = PuzzleGenerator.listPlacementCandidates(kL4, placed);
       for (final candidate in candidates) {
         final hasAdj = candidate.any(
           (c) => placed.any((p) => PuzzleGenerator.isAdjacent(c, p)),
@@ -144,15 +139,10 @@ void main() {
     });
     test('候補リストに重複なし（セル集合が一致するものは1件のみ）', () {
       final placed = {(0, 0), (0, 1), (1, 0)};
-      final candidates =
-          PuzzleGenerator.listPlacementCandidates(kI3, placed);
+      final candidates = PuzzleGenerator.listPlacementCandidates(kI3, placed);
       final keys = candidates.map((c) => c.toString()).toList();
       final unique = keys.toSet();
-      expect(
-        keys.length,
-        unique.length,
-        reason: '候補リストに重複配置が存在する',
-      );
+      expect(keys.length, unique.length, reason: '候補リストに重複配置が存在する');
     });
     test('O4 (対称ピース) を単一セルに置く候補は重複除去される', () {
       // O4 は全向き同一。境界4マスのどれにピースのどのセルを当てても、
@@ -162,19 +152,20 @@ void main() {
       expect(keys.length, candidates.length, reason: '重複候補が存在する');
     });
     test('全候補のセル数はピースのセル数と一致する', () {
-      final candidates =
-          PuzzleGenerator.listPlacementCandidates(kT4, {(0, 0), (1, 0)});
+      final candidates = PuzzleGenerator.listPlacementCandidates(kT4, {
+        (0, 0),
+        (1, 0),
+      });
       for (final c in candidates) {
-        expect(
-          c.length,
-          kT4.cells.length,
-          reason: '候補 $c のセル数がピースサイズと不一致',
-        );
+        expect(c.length, kT4.cells.length, reason: '候補 $c のセル数がピースサイズと不一致');
       }
     });
     test('候補リストが空にならない（L-Tromino vs I-Tromino 1個配置済み）', () {
-      final candidates =
-          PuzzleGenerator.listPlacementCandidates(kL3, {(0, 0), (0, 1), (0, 2)});
+      final candidates = PuzzleGenerator.listPlacementCandidates(kL3, {
+        (0, 0),
+        (0, 1),
+        (0, 2),
+      });
       expect(candidates, isNotEmpty);
     });
     test('候補の各セルはソート済み（row-major 順）', () {
@@ -237,12 +228,21 @@ void main() {
     test('normal.pool と hard.pool はテトロミノとペントミノを含む', () {
       for (final d in [Difficulty.normal, Difficulty.hard]) {
         final pool = d.pool;
-        expect(pool.any((p) => kTetrominoes.contains(p)), isTrue,
-            reason: '${d.name} プールにテトロミノがない');
-        expect(pool.any((p) => kPentominoes.contains(p)), isTrue,
-            reason: '${d.name} プールにペントミノがない');
-        expect(pool.any((p) => kTrominoes.contains(p)), isFalse,
-            reason: '${d.name} プールにトロミノが混入している');
+        expect(
+          pool.any((p) => kTetrominoes.contains(p)),
+          isTrue,
+          reason: '${d.name} プールにテトロミノがない',
+        );
+        expect(
+          pool.any((p) => kPentominoes.contains(p)),
+          isTrue,
+          reason: '${d.name} プールにペントミノがない',
+        );
+        expect(
+          pool.any((p) => kTrominoes.contains(p)),
+          isFalse,
+          reason: '${d.name} プールにトロミノが混入している',
+        );
       }
     });
   });
@@ -257,8 +257,7 @@ void main() {
     });
     test('normal: construct が成功する (seed=0)', () {
       expect(
-        () =>
-            PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0),
+        () => PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0),
         returnsNormally,
       );
     });
@@ -269,13 +268,17 @@ void main() {
       );
     });
     test('puzzle.seed は引数 seed と一致する', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 42);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 42,
+      );
       expect(puzzle.seed, 42);
     });
     test('puzzle.difficulty は引数 difficulty と一致する', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.normal,
+        seed: 0,
+      );
       expect(puzzle.difficulty, Difficulty.normal);
     });
   });
@@ -283,18 +286,24 @@ void main() {
   // ─── 6. ブロック数 ────────────────────────────────────────────────────────
   group('blocks.length', () {
     test('easy: blocks.length == 3', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 0,
+      );
       expect(puzzle.blocks.length, 3);
     });
     test('normal: blocks.length == 4', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.normal,
+        seed: 0,
+      );
       expect(puzzle.blocks.length, 4);
     });
     test('hard: blocks.length == 5', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.hard,
+        seed: 0,
+      );
       expect(puzzle.blocks.length, 5);
     });
   });
@@ -302,16 +311,17 @@ void main() {
   // ─── 7. セル総数が難易度範囲内 ─────────────────────────────────────────────
   group('frame.length の範囲', () {
     for (final diff in Difficulty.values) {
-      test('${diff.name}: frame.length が [${diff.minTotalCells}, ${diff.maxTotalCells}] 内', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 1);
-        expect(
-          puzzle.frame.length,
-          inInclusiveRange(diff.minTotalCells, diff.maxTotalCells),
-          reason:
-              '${diff.name}: frame.length=${puzzle.frame.length}',
-        );
-      });
+      test(
+        '${diff.name}: frame.length が [${diff.minTotalCells}, ${diff.maxTotalCells}] 内',
+        () {
+          final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 1);
+          expect(
+            puzzle.frame.length,
+            inInclusiveRange(diff.minTotalCells, diff.maxTotalCells),
+            reason: '${diff.name}: frame.length=${puzzle.frame.length}',
+          );
+        },
+      );
     }
   });
 
@@ -319,8 +329,7 @@ void main() {
   group('frame == union(blocks[i].cells)', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: frame は全ブロックセルの和集合と完全一致する', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 2);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 2);
         final union = <Cell>{};
         for (final b in puzzle.blocks) {
           union.addAll(b.cells);
@@ -338,48 +347,32 @@ void main() {
   group('boundingBox', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: boundingBox.minY が frame の min-y と一致', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 3);
-        final minY =
-            puzzle.frame.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
-        expect(
-          puzzle.boundingBox.minY,
-          minY,
-          reason: '${diff.name}: minY 不一致',
-        );
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 3);
+        final minY = puzzle.frame
+            .map((c) => c.$1)
+            .reduce((a, b) => a < b ? a : b);
+        expect(puzzle.boundingBox.minY, minY, reason: '${diff.name}: minY 不一致');
       });
       test('${diff.name}: boundingBox.maxY が frame の max-y と一致', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 3);
-        final maxY =
-            puzzle.frame.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
-        expect(
-          puzzle.boundingBox.maxY,
-          maxY,
-          reason: '${diff.name}: maxY 不一致',
-        );
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 3);
+        final maxY = puzzle.frame
+            .map((c) => c.$1)
+            .reduce((a, b) => a > b ? a : b);
+        expect(puzzle.boundingBox.maxY, maxY, reason: '${diff.name}: maxY 不一致');
       });
       test('${diff.name}: boundingBox.minX が frame の min-x と一致', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 3);
-        final minX =
-            puzzle.frame.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
-        expect(
-          puzzle.boundingBox.minX,
-          minX,
-          reason: '${diff.name}: minX 不一致',
-        );
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 3);
+        final minX = puzzle.frame
+            .map((c) => c.$2)
+            .reduce((a, b) => a < b ? a : b);
+        expect(puzzle.boundingBox.minX, minX, reason: '${diff.name}: minX 不一致');
       });
       test('${diff.name}: boundingBox.maxX が frame の max-x と一致', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 3);
-        final maxX =
-            puzzle.frame.map((c) => c.$2).reduce((a, b) => a > b ? a : b);
-        expect(
-          puzzle.boundingBox.maxX,
-          maxX,
-          reason: '${diff.name}: maxX 不一致',
-        );
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 3);
+        final maxX = puzzle.frame
+            .map((c) => c.$2)
+            .reduce((a, b) => a > b ? a : b);
+        expect(puzzle.boundingBox.maxX, maxX, reason: '${diff.name}: maxX 不一致');
       });
     }
   });
@@ -388,8 +381,7 @@ void main() {
   group('ブロック間のセル重複なし', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: 全ブロック間でセル重複がない', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 4);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 4);
         final all = <Cell>[];
         for (final b in puzzle.blocks) {
           all.addAll(b.cells);
@@ -407,8 +399,7 @@ void main() {
   group('隣接制約', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: 2個目以降のブロックは直前配置済みセルに辺隣接する', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 5);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 5);
         final cumulative = <Cell>{};
         cumulative.addAll(puzzle.blocks[0].cells);
         for (var i = 1; i < puzzle.blocks.length; i++) {
@@ -431,8 +422,7 @@ void main() {
   group('source の pool 帰属', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: 全 blocks[i].source が difficulty.pool に含まれる', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 6);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 6);
         expect(
           _allSourcesInPool(puzzle),
           isTrue,
@@ -446,8 +436,7 @@ void main() {
   group('frame の連結性', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: frame は連結グラフを構成する (BFS)', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 7);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 7);
         expect(
           _isConnected(puzzle.frame),
           isTrue,
@@ -460,17 +449,14 @@ void main() {
   // ─── 14. 面積一致 ────────────────────────────────────────────────────────
   group('面積一致', () {
     for (final diff in Difficulty.values) {
-      test(
-          '${diff.name}: frame.length == blocks の cells 合計',
-          () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 8);
-        final total =
-            puzzle.blocks.fold(0, (s, b) => s + b.cells.length);
+      test('${diff.name}: frame.length == blocks の cells 合計', () {
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 8);
+        final total = puzzle.blocks.fold(0, (s, b) => s + b.cells.length);
         expect(
           puzzle.frame.length,
           total,
-          reason: '${diff.name}: frame.length=${ puzzle.frame.length}, sum=$total',
+          reason:
+              '${diff.name}: frame.length=${puzzle.frame.length}, sum=$total',
         );
       });
     }
@@ -480,8 +466,7 @@ void main() {
   group('frame ⊂ boundingBox', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: 全 frame セルが boundingBox 内に収まる', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 9);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 9);
         final bb = puzzle.boundingBox;
         for (final c in puzzle.frame) {
           expect(
@@ -503,8 +488,7 @@ void main() {
   group('PlacedBlock.source / orientation は正規化済み', () {
     for (final diff in Difficulty.values) {
       test('${diff.name}: normalize(source).cells == source.cells', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 10);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 10);
         for (var i = 0; i < puzzle.blocks.length; i++) {
           final src = puzzle.blocks[i].source;
           final normalized = PolyominoTransformer.normalize(src);
@@ -516,8 +500,7 @@ void main() {
         }
       });
       test('${diff.name}: orientation は正規化済みかつ source と同じセル数', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 10);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 10);
         for (final block in puzzle.blocks) {
           final normalized = PolyominoTransformer.normalize(block.orientation);
           expect(
@@ -533,8 +516,7 @@ void main() {
         }
       });
       test('${diff.name}: cells は orientation の平行移動である', () {
-        final puzzle =
-            PuzzleGenerator.construct(difficulty: diff, seed: 11);
+        final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: 11);
         for (final block in puzzle.blocks) {
           final normalizedPlaced = PolyominoTransformer.normalize(
             PolyominoData(
@@ -556,17 +538,25 @@ void main() {
   // ─── 17. 再現性 ──────────────────────────────────────────────────────────
   group('再現性', () {
     test('同じ (difficulty, seed) で2回呼ぶと frame が完全一致する', () {
-      final p1 =
-          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 99);
-      final p2 =
-          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 99);
+      final p1 = PuzzleGenerator.construct(
+        difficulty: Difficulty.normal,
+        seed: 99,
+      );
+      final p2 = PuzzleGenerator.construct(
+        difficulty: Difficulty.normal,
+        seed: 99,
+      );
       expect(p1.frame, equals(p2.frame));
     });
     test('同じ (difficulty, seed) で2回呼ぶと blocks が完全一致する', () {
-      final p1 =
-          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: 77);
-      final p2 =
-          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: 77);
+      final p1 = PuzzleGenerator.construct(
+        difficulty: Difficulty.hard,
+        seed: 77,
+      );
+      final p2 = PuzzleGenerator.construct(
+        difficulty: Difficulty.hard,
+        seed: 77,
+      );
       expect(p1.blocks.length, p2.blocks.length);
       for (var i = 0; i < p1.blocks.length; i++) {
         expect(
@@ -582,10 +572,14 @@ void main() {
       }
     });
     test('同じ (difficulty, seed) で2回呼ぶと boundingBox が完全一致する', () {
-      final p1 =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 55);
-      final p2 =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 55);
+      final p1 = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 55,
+      );
+      final p2 = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 55,
+      );
       expect(p1.boundingBox.minY, p2.boundingBox.minY);
       expect(p1.boundingBox.maxY, p2.boundingBox.maxY);
       expect(p1.boundingBox.minX, p2.boundingBox.minX);
@@ -598,57 +592,59 @@ void main() {
     test('easy: seed 0..19 で生成した 20 個の frame が全て異なる', () {
       final frames = <Set<Cell>>{};
       for (var s = 0; s < 20; s++) {
-        final p =
-            PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: s);
+        final p = PuzzleGenerator.construct(
+          difficulty: Difficulty.easy,
+          seed: s,
+        );
         frames.add(p.frame);
       }
-      expect(
-        frames.length,
-        20,
-        reason: '異なる seed で同じ frame が生成された',
-      );
+      expect(frames.length, 20, reason: '異なる seed で同じ frame が生成された');
     });
   });
 
   // ─── 19. ピースの向きの多様性 ───────────────────────────────────────────
   group('ピースの向きの多様性 (seed 0..99)', () {
     for (final diff in Difficulty.values) {
-      test('${diff.name}: blocks[0] のユニーク (source.id, orientation.cells) が >= 5', () {
-        final uniqueKeys = <String>{};
-        for (var s = 0; s < 100; s++) {
-          final puzzle =
-              PuzzleGenerator.construct(difficulty: diff, seed: s);
-          final b = puzzle.blocks[0];
-          uniqueKeys.add('${b.source.id}:${b.orientation.cells}');
-        }
-        expect(
-          uniqueKeys.length,
-          greaterThanOrEqualTo(5),
-          reason:
-              '${diff.name}: ユニーク向き数=${uniqueKeys.length} < 5 → 向きランダム未実装の可能性',
-        );
-      });
+      test(
+        '${diff.name}: blocks[0] のユニーク (source.id, orientation.cells) が >= 5',
+        () {
+          final uniqueKeys = <String>{};
+          for (var s = 0; s < 100; s++) {
+            final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: s);
+            final b = puzzle.blocks[0];
+            uniqueKeys.add('${b.source.id}:${b.orientation.cells}');
+          }
+          expect(
+            uniqueKeys.length,
+            greaterThanOrEqualTo(5),
+            reason:
+                '${diff.name}: ユニーク向き数=${uniqueKeys.length} < 5 → 向きランダム未実装の可能性',
+          );
+        },
+      );
     }
   });
 
   // ─── 20. マルチセット（同一ピース重複OK）─────────────────────────────────
   group('マルチセット', () {
     for (final diff in Difficulty.values) {
-      test('${diff.name}: seed 0..99 の中に同じ source.id を持つブロックが 2 個以上の puzzle がある', () {
-        var found = false;
-        for (var s = 0; s < 100 && !found; s++) {
-          final puzzle =
-              PuzzleGenerator.construct(difficulty: diff, seed: s);
-          final ids = puzzle.blocks.map((b) => b.source.id).toList();
-          final unique = ids.toSet();
-          if (unique.length < ids.length) found = true;
-        }
-        expect(
-          found,
-          isTrue,
-          reason: '${diff.name}: 100 試行で重複 source.id が一度も出現しなかった',
-        );
-      });
+      test(
+        '${diff.name}: seed 0..99 の中に同じ source.id を持つブロックが 2 個以上の puzzle がある',
+        () {
+          var found = false;
+          for (var s = 0; s < 100 && !found; s++) {
+            final puzzle = PuzzleGenerator.construct(difficulty: diff, seed: s);
+            final ids = puzzle.blocks.map((b) => b.source.id).toList();
+            final unique = ids.toSet();
+            if (unique.length < ids.length) found = true;
+          }
+          expect(
+            found,
+            isTrue,
+            reason: '${diff.name}: 100 試行で重複 source.id が一度も出現しなかった',
+          );
+        },
+      );
     }
   });
 
@@ -673,11 +669,7 @@ void main() {
         );
         fail('GenerationFailedException がスローされるべき');
       } on GenerationFailedException catch (e) {
-        expect(
-          e.message,
-          contains('42'),
-          reason: 'メッセージに seed=42 が含まれない',
-        );
+        expect(e.message, contains('42'), reason: 'メッセージに seed=42 が含まれない');
       }
     });
     test('GenerationFailedException.toString() が正しい形式', () {
@@ -714,29 +706,32 @@ void main() {
   // ─── 23. イミュータブル違反テスト ────────────────────────────────────────
   group('イミュータブル', () {
     test('puzzle.frame.add() は UnsupportedError をスローする', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 0,
+      );
       expect(
         () => puzzle.frame.add((99, 99)),
         throwsA(isA<UnsupportedError>()),
       );
     });
     test('puzzle.blocks.add() は UnsupportedError をスローする', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 0,
+      );
       final dummy = PlacedBlock(
         source: kI3,
         orientation: kI3,
         cells: [(0, 0), (0, 1), (0, 2)],
       );
-      expect(
-        () => puzzle.blocks.add(dummy),
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(() => puzzle.blocks.add(dummy), throwsA(isA<UnsupportedError>()));
     });
     test('puzzle.blocks[0].cells.add() は UnsupportedError をスローする', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 0,
+      );
       expect(
         () => puzzle.blocks[0].cells.add((99, 99)),
         throwsA(isA<UnsupportedError>()),
@@ -746,43 +741,37 @@ void main() {
 
   // ─── 24. パフォーマンス ──────────────────────────────────────────────────
   group('パフォーマンス', () {
-    test(
-      '1問あたり 50ms 以内 (easy, seed=0)',
-      () {
-        final sw = Stopwatch()..start();
-        PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
-        sw.stop();
-        expect(
-          sw.elapsedMilliseconds,
-          lessThan(50),
-          reason: '生成時間 ${sw.elapsedMilliseconds}ms が 50ms を超過',
-        );
-      },
-      tags: ['slow'],
-    );
-    test(
-      '10問の合計が 500ms 以内 (hard)',
-      () {
-        final sw = Stopwatch()..start();
-        for (var s = 0; s < 10; s++) {
-          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
-        }
-        sw.stop();
-        expect(
-          sw.elapsedMilliseconds,
-          lessThan(500),
-          reason: '10問合計 ${sw.elapsedMilliseconds}ms が 500ms を超過',
-        );
-      },
-      tags: ['slow'],
-    );
+    test('1問あたり 50ms 以内 (easy, seed=0)', () {
+      final sw = Stopwatch()..start();
+      PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      sw.stop();
+      expect(
+        sw.elapsedMilliseconds,
+        lessThan(50),
+        reason: '生成時間 ${sw.elapsedMilliseconds}ms が 50ms を超過',
+      );
+    }, tags: ['slow']);
+    test('10問の合計が 500ms 以内 (hard)', () {
+      final sw = Stopwatch()..start();
+      for (var s = 0; s < 10; s++) {
+        PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
+      }
+      sw.stop();
+      expect(
+        sw.elapsedMilliseconds,
+        lessThan(500),
+        reason: '10問合計 ${sw.elapsedMilliseconds}ms が 500ms を超過',
+      );
+    }, tags: ['slow']);
   });
 
   // ─── 25. ADR-0006 準拠 ───────────────────────────────────────────────────
   group('ADR-0006 準拠', () {
     test('boundingBox フィールド名が minY/maxY/minX/maxX', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: 0);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.easy,
+        seed: 0,
+      );
       // フィールドにアクセスできること（型推論でコンパイル時チェック）
       expect(
         puzzle.boundingBox.minY,
@@ -794,10 +783,13 @@ void main() {
       );
     });
     test('frame の Cell は (y, x) 順 — boundingBox.minY が frame の min y と一致', () {
-      final puzzle =
-          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: 0);
-      final minFirstComponent =
-          puzzle.frame.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
+      final puzzle = PuzzleGenerator.construct(
+        difficulty: Difficulty.normal,
+        seed: 0,
+      );
+      final minFirstComponent = puzzle.frame
+          .map((c) => c.$1)
+          .reduce((a, b) => a < b ? a : b);
       expect(
         puzzle.boundingBox.minY,
         minFirstComponent,
@@ -808,86 +800,83 @@ void main() {
 
   // ─── 26. ストレステスト ───────────────────────────────────────────────────
   group('ストレステスト', () {
-    test(
-      'easy: 1000 問生成、失敗数 < 10',
-      () {
-        var failures = 0;
-        final failedSeeds = <int>[];
-        final sw = Stopwatch()..start();
-        for (var s = 0; s < 1000; s++) {
-          try {
-            PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: s);
-          } on GenerationFailedException {
-            failures++;
-            failedSeeds.add(s);
-          }
+    test('easy: 1000 問生成、失敗数 < 10', () {
+      var failures = 0;
+      final failedSeeds = <int>[];
+      final sw = Stopwatch()..start();
+      for (var s = 0; s < 1000; s++) {
+        try {
+          PuzzleGenerator.construct(difficulty: Difficulty.easy, seed: s);
+        } on GenerationFailedException {
+          failures++;
+          failedSeeds.add(s);
         }
-        sw.stop();
-        if (failedSeeds.isNotEmpty) {
-          // ignore: avoid_print
-          print('easy 失敗 seed: $failedSeeds');
-        }
+      }
+      sw.stop();
+      if (failedSeeds.isNotEmpty) {
         // ignore: avoid_print
-        print('easy 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
-        expect(sw.elapsedMilliseconds, lessThan(30000),
-            reason: 'easy 1000問が 30秒を超過');
-        expect(failures, lessThan(10), reason: 'easy 失敗数=$failures >= 10');
-      },
-      tags: ['slow'],
-    );
-    test(
-      'normal: 1000 問生成、失敗数 < 10',
-      () {
-        var failures = 0;
-        final failedSeeds = <int>[];
-        final sw = Stopwatch()..start();
-        for (var s = 0; s < 1000; s++) {
-          try {
-            PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: s);
-          } on GenerationFailedException {
-            failures++;
-            failedSeeds.add(s);
-          }
+        print('easy 失敗 seed: $failedSeeds');
+      }
+      // ignore: avoid_print
+      print('easy 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
+      expect(
+        sw.elapsedMilliseconds,
+        lessThan(30000),
+        reason: 'easy 1000問が 30秒を超過',
+      );
+      expect(failures, lessThan(10), reason: 'easy 失敗数=$failures >= 10');
+    }, tags: ['slow']);
+    test('normal: 1000 問生成、失敗数 < 10', () {
+      var failures = 0;
+      final failedSeeds = <int>[];
+      final sw = Stopwatch()..start();
+      for (var s = 0; s < 1000; s++) {
+        try {
+          PuzzleGenerator.construct(difficulty: Difficulty.normal, seed: s);
+        } on GenerationFailedException {
+          failures++;
+          failedSeeds.add(s);
         }
-        sw.stop();
-        if (failedSeeds.isNotEmpty) {
-          // ignore: avoid_print
-          print('normal 失敗 seed: $failedSeeds');
-        }
+      }
+      sw.stop();
+      if (failedSeeds.isNotEmpty) {
         // ignore: avoid_print
-        print('normal 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
-        expect(sw.elapsedMilliseconds, lessThan(30000),
-            reason: 'normal 1000問が 30秒を超過');
-        expect(failures, lessThan(10), reason: 'normal 失敗数=$failures >= 10');
-      },
-      tags: ['slow'],
-    );
-    test(
-      'hard: 1000 問生成、失敗数 < 10',
-      () {
-        var failures = 0;
-        final failedSeeds = <int>[];
-        final sw = Stopwatch()..start();
-        for (var s = 0; s < 1000; s++) {
-          try {
-            PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
-          } on GenerationFailedException {
-            failures++;
-            failedSeeds.add(s);
-          }
+        print('normal 失敗 seed: $failedSeeds');
+      }
+      // ignore: avoid_print
+      print('normal 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
+      expect(
+        sw.elapsedMilliseconds,
+        lessThan(30000),
+        reason: 'normal 1000問が 30秒を超過',
+      );
+      expect(failures, lessThan(10), reason: 'normal 失敗数=$failures >= 10');
+    }, tags: ['slow']);
+    test('hard: 1000 問生成、失敗数 < 10', () {
+      var failures = 0;
+      final failedSeeds = <int>[];
+      final sw = Stopwatch()..start();
+      for (var s = 0; s < 1000; s++) {
+        try {
+          PuzzleGenerator.construct(difficulty: Difficulty.hard, seed: s);
+        } on GenerationFailedException {
+          failures++;
+          failedSeeds.add(s);
         }
-        sw.stop();
-        if (failedSeeds.isNotEmpty) {
-          // ignore: avoid_print
-          print('hard 失敗 seed: $failedSeeds');
-        }
+      }
+      sw.stop();
+      if (failedSeeds.isNotEmpty) {
         // ignore: avoid_print
-        print('hard 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
-        expect(sw.elapsedMilliseconds, lessThan(30000),
-            reason: 'hard 1000問が 30秒を超過');
-        expect(failures, lessThan(10), reason: 'hard 失敗数=$failures >= 10');
-      },
-      tags: ['slow'],
-    );
+        print('hard 失敗 seed: $failedSeeds');
+      }
+      // ignore: avoid_print
+      print('hard 1000問: ${sw.elapsedMilliseconds}ms, 失敗$failures件');
+      expect(
+        sw.elapsedMilliseconds,
+        lessThan(30000),
+        reason: 'hard 1000問が 30秒を超過',
+      );
+      expect(failures, lessThan(10), reason: 'hard 失敗数=$failures >= 10');
+    }, tags: ['slow']);
   });
 }

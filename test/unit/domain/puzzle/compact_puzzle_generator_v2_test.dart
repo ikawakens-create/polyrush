@@ -65,16 +65,17 @@ void main() {
               isTrue,
               reason: '${difficulty.name}/seed=$seed: 枠が単連結であること（穴なし）',
             );
-            final ids =
-                vp.puzzle.blocks.map((b) => b.source.id).toList();
+            final ids = vp.puzzle.blocks.map((b) => b.source.id).toList();
             expect(
               ids.toSet().length,
               equals(ids.length),
-              reason: '${difficulty.name}/seed=$seed: blocks 内の source.id がすべて異なること（重複なし）',
+              reason:
+                  '${difficulty.name}/seed=$seed: blocks 内の source.id がすべて異なること（重複なし）',
             );
           } else {
             newErr++;
-            final err = (newResult as Err<VerifiedPuzzle, CompactPuzzleError>).error;
+            final err =
+                (newResult as Err<VerifiedPuzzle, CompactPuzzleError>).error;
             errDetails.add('${difficulty.name}/seed=$seed: $err');
           }
         }
@@ -92,7 +93,8 @@ void main() {
         expect(
           newErr,
           equals(0),
-          reason: 'maxCompactRetries=8 でリトライ予算が足りること。'
+          reason:
+              'maxCompactRetries=8 でリトライ予算が足りること。'
               '失敗seed: $errDetails',
         );
       });
