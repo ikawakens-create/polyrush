@@ -9,7 +9,7 @@ class FeelConfig {
     this.pickupScale = 1.0,
     this.pickupMs = 100,
     this.returnMs = 100,
-    this.snapRadius = 0.5,
+    this.snapRadius = 0.71,
     this.dragStartSlop = 8.0,
     this.pickupRadius = 0.8,
     this.grabDirectionRatio = 0.3,
