@@ -83,6 +83,9 @@ Code Web は放置すると `claude/implement-xxx-XXXXX` のような自動命�
 - `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
 - `pubspec.yaml` (依存変更は別途相談)
+- `lib/game/play/placement_logic.dart` (Phase 2 / 配置ロジック本体。改造禁止。改良は新層を足す)
+- `lib/game/play/confetti_physics.dart` (Phase 2 / 紙吹雪パラメータ実機確定値: 80個・1.4秒・上40%。改造禁止)
+- `lib/ui/screens/play/tray_layout.dart` (Phase 2 / トレイ左詰めA方式の確定ロジック。改造禁止)
 
 ※ board_painter.dart / board_preview_screen.dart は候補A（本番プレビュー差し替え）で編集中のため意図的に未追加。候補A完了後に board_painter.dart を追加する。
 
@@ -176,6 +179,12 @@ Code Web は実装に集中し、設計判断はユーザー経由で Opus に�
   CI 結果の確認はユーザーが GitHub Web UI から行う。
 - Code Web のセッションは状態を持たない。タスク開始時に必ず
   冒頭の「作業開始時の環境チェック」を実行すること。
+- Code Web はセッション開始時に Flutter SDK が自動セットアップされ、
+  flutter コマンド（flutter analyze / flutter test 等）をセッション内で
+  実行できる（ADR-0007 関連 / PR #73 で導入）。したがって実装タスクには
+  flutter test の実行と、その結果（件数・pass/fail・所要時間）の報告を
+  含めてよい。ただし CI ログ自体は依然 Code Web から見えないため、
+  最終的な合否確認はユーザーが GitHub Web UI で行う点は変わらない。
 
 ### Opus への受け渡し形式 (Code Web 向け)
 
