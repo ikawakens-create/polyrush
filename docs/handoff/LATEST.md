@@ -1,7 +1,7 @@
 # Handoff: claude/handoff-workflow-docs-2s6q4l
 
 - 日付: 2026-06-11
-- PR: (PR 作成後に更新)
+- PR: https://github.com/ikawakens-create/polyrush/pull/82
 
 ## 1. 環境チェック結果
 
