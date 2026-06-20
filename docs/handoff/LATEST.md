@@ -1,53 +1,62 @@
-# Handoff: claude/handoff-workflow-docs-2s6q4l
+# Handoff: claude/charming-johnson-ggwt57
 
-- 日付: 2026-06-11
-- PR: https://github.com/ikawakens-create/polyrush/pull/82
+- 日付: 2026-06-20
+- タスク: プレイ画面ハプティクス最小実装
 
 ## 1. 環境チェック結果
 
-git log --oneline -3 (develop merge 後):
+ブランチ: システム割当の claude/charming-johnson-ggwt57 を使用。
+develop の最新コミット 308d8b9 を含むことを確認済み（git merge develop → Already up to date）。
+
+git log --oneline -3 (作業開始時点):
+  308d8b9 docs: ADR-0016 handoff ファイル方式を導入し CLAUDE.md を更新 (#82)
   6438262 docs: ADR-0015 手触り調整パネルと snapRadius 確定値を記録 (#80)
   d82dfd8 feat(feel): snapRadius のデフォルト値を 0.5 から 0.71 に引き上げ (#79)
-  cbadcd2 docs: CLAUDE.md に Phase2 保護ファイル追記と Flutter SDK 環境制約を反映 (#78)
-
-ブランチはシステム割当の claude/handoff-workflow-docs-2s6q4l を使用。
-develop の最新コミット 6438262 を git merge develop で取り込み済み。
 
 ## 2. 作成・変更ファイル一覧
 
 新規:
-  docs/adr/0016-handoff-files.md   — ADR-0016 handoff ファイル方式の設計判断
-  docs/handoff/LATEST.md           — 本ファイル（handoff 初回）
+  lib/game/play/play_haptics.dart — PlayHaptics クラス（4イベント定義）
 
 変更:
-  CLAUDE.md — 2 箇所追記
-    1. 「🚫 自動命名ブランチの禁止」セクション末尾に
-       「例外: システム割当ブランチ(2026-06-11 改定)」を追加
-    2. 「📋 タスク完了時の報告フォーマット」セクション末尾に
-       「handoff ファイルの更新(ADR-0016・必須)」を追加
+  lib/ui/screens/play/play_screen.dart — 4箇所にハプティクス呼び出しを追加
+  docs/handoff/LATEST.md — 本ファイル
 
 ## 3. 削除・変更した既存ファイルと理由
 
-なし。
+play_screen.dart の変更内容（ロジック変更なし・呼び出し追加のみ）:
+- import 'package:flutter/services.dart'; を削除（PlayHaptics 内で吸収）
+- import play_haptics.dart を追加
+- _beginDrag() の setState 直前に PlayHaptics.pickup() を 1 行追加
+- _onDrop() の snap 確定分岐で HapticFeedback.lightImpact() → PlayHaptics.snap() に置換
+- _onDrop() のトレイ戻り分岐先頭に PlayHaptics.invalid() を 1 行追加
+- _onCleared() の HapticFeedback.mediumImpact() → PlayHaptics.complete() に置換
 
-## 4. テスト結果
+## 4. 4イベントの紐付け先
 
-ドキュメントのみの変更のため、テスト実行なし。
-既存コードへの影響なし。
+a. pickup  → _beginDrag()（play_screen.dart:199 付近）
+   トレイ掴みと盤面ピース再掴みの両方が通る共通処理
+b. snap    → _onDrop() の `_ghostValid && _ghostCells.isNotEmpty` 分岐（play_screen.dart:302 付近）
+c. invalid → _onDrop() の「トレイへ戻る」分岐先頭（play_screen.dart:319 付近）
+d. complete → _onCleared()（play_screen.dart:370 付近）
 
-## 5. 指示書からの逸脱
+## 5. テスト結果
 
-- ブランチ名: 指示書では docs/handoff-workflow を指定されていたが、
-  システムが claude/handoff-workflow-docs-2s6q4l を強制割当し、
-  手動命名が不可能だったため、ユーザーの許可を得て例外としてそのまま使用した。
-  CLAUDE.md のブランチ規約にこの例外条件を明文化した。
+flutter analyze: 1 issue (既存の tray_layout.dart の dangling_library_doc_comments、本タスク無関係)
+flutter test: 544 件すべて pass
 
-## 6. 次セッションへの申し送り
+## 6. 指示書からの逸脱
 
-- この PR がマージされると ADR-0016 の handoff ファイル方式が有効になる。
-  次セッション以降は必ずタスク開始時に本ファイル(docs/handoff/LATEST.md)を
-  読んでから着手すること。
-- CLAUDE.md を claude.ai 側のプロジェクトナレッジ（写し）にも同期すること
-  (ADR-0016 の追記内容と、ブランチ規約の例外条件の追記)。
-- 現在進行中の未完了タスクはなし。次のタスクを新しい PR として develop
-  ベースで着手してよい状態。
+- ブランチ名: システム割当 claude/charming-johnson-ggwt57 を使用（CLAUDE.md のシステム割当例外を適用）
+- 指示書の PlayHaptics コードは snap() が HapticFeedback.mediumImpact() と記載されており、その通りに実装
+- 既存コードに HapticFeedback.lightImpact()（snap）と HapticFeedback.mediumImpact()（complete）があったが、PlayHaptics 経由に置換（結果として snap は medium、complete は heavy に変更）
+
+## 7. PR
+
+作成後に URL を追記予定
+
+## 8. 次セッションへの申し送り
+
+- ハプティクスの体感確認はユーザーが CI の APK を実機インストールして行う
+- PlayHaptics.enabled フラグは設定画面の「ハプティクス ON/OFF」実装時に外部から切り替える想定
+- 現在進行中の未完了タスクはなし

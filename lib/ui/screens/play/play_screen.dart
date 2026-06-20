@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator_v3.dart';
@@ -13,6 +12,7 @@ import 'package:polyrush/game/board/grid_geometry.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';
 import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/game/play/placement_logic.dart';
+import 'package:polyrush/game/play/play_haptics.dart';
 import 'package:polyrush/ui/screens/play/confetti_overlay.dart';
 import 'package:polyrush/ui/screens/play/piece_tray.dart';
 
@@ -196,6 +196,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       () => setState(() => _dragScale = _scaleAnim!.value),
     );
 
+    PlayHaptics.pickup();
     setState(() {
       _draggingIndex = colorIndex;
       _dragPosition = pointerGlobal;
@@ -301,7 +302,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     // スナップ有効かつ配置可能なら確定
     if (_ghostValid && _ghostCells.isNotEmpty) {
       final index = _draggingIndex!;
-      HapticFeedback.lightImpact();
+      PlayHaptics.snap();
       setState(() {
         _placed.add((cells: _ghostCells, colorIndex: index));
         _draggingIndex = null;
@@ -315,6 +316,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     }
 
     // 配置できなければトレイへ戻る
+    PlayHaptics.invalid();
     final startGlobal = _dragPosition ?? pointerGlobal;
     final endGlobal = _trayItemGlobal!;
     final startScale = _dragScale;
@@ -367,7 +369,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
 
   void _onCleared() {
     if (_isCleared) return;
-    HapticFeedback.mediumImpact();
+    PlayHaptics.complete();
 
     // 発光: 120ms で 0→1 に跳ね上がり、500ms で 1→0 にゆっくり引く
     _glowCtrl?.dispose();
