@@ -12,7 +12,9 @@ List<Cell> _norm(List<Cell> cells) {
   final minY = cells.map((c) => c.$1).reduce(min);
   final minX = cells.map((c) => c.$2).reduce(min);
   final out = cells.map((c) => (c.$1 - minY, c.$2 - minX)).toList()
-    ..sort((a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2));
+    ..sort(
+      (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1) : a.$2.compareTo(b.$2),
+    );
   return out;
 }
 
@@ -35,7 +37,8 @@ void main() {
           final ori = _norm(b.orientation.cells);
           final cel = _norm(b.cells);
           if (ori.toString() != cel.toString()) {
-            final line = '[MISMATCH $d seed=$seed piece=$i] '
+            final line =
+                '[MISMATCH $d seed=$seed piece=$i] '
                 'orientation=$ori  cells=$cel  src.size=${b.source.size}';
             // ignore: avoid_print
             print(line);
@@ -46,11 +49,7 @@ void main() {
     }
     // ignore: avoid_print
     print('=== orientation != cells の件数: ${bad.length} ===');
-    expect(
-      bad,
-      isEmpty,
-      reason: 'トレイ表示形状と実配置形状が違うピースがある（上のMISMATCHログ参照）',
-    );
+    expect(bad, isEmpty, reason: 'トレイ表示形状と実配置形状が違うピースがある（上のMISMATCHログ参照）');
   });
 
   test('診断: easy/normal/hard seed=1 形状ダンプ', () {
@@ -64,8 +63,10 @@ void main() {
           for (var i = 0; i < p.blocks.length; i++) {
             final b = p.blocks[i];
             // ignore: avoid_print
-            print('piece[$i] orientation=${_norm(b.orientation.cells)} '
-                'cells=${_norm(b.cells)} source=${_norm(b.source.cells)}');
+            print(
+              'piece[$i] orientation=${_norm(b.orientation.cells)} '
+              'cells=${_norm(b.cells)} source=${_norm(b.source.cells)}',
+            );
           }
         case Err(:final error):
           // ignore: avoid_print
