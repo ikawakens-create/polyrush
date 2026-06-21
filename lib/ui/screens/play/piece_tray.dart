@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:polyrush/domain/puzzle/polyomino.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/ui/screens/play/tray_layout.dart';
@@ -21,12 +22,12 @@ const _pieceBorderColor = Color(0xFF1B2A4A);
 /// [block.orientation.cells] を (0,0) 基点に正規化して描画する。
 class PiecePainter extends CustomPainter {
   const PiecePainter({
-    required this.block,
+    required this.orientation,
     required this.colorIndex,
     required this.cellSize,
   });
 
-  final PlacedBlock block;
+  final PolyominoData orientation;
   final int colorIndex;
   final double cellSize;
 
@@ -39,7 +40,7 @@ class PiecePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    final cells = block.orientation.cells;
+    final cells = orientation.cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
 
@@ -57,7 +58,7 @@ class PiecePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(PiecePainter old) =>
-      old.block != block ||
+      old.orientation != orientation ||
       old.colorIndex != colorIndex ||
       old.cellSize != cellSize;
 }
@@ -76,6 +77,8 @@ class PieceTray extends StatefulWidget {
     super.key,
     required this.puzzle,
     required this.feelConfig,
+    required this.orientationOf,
+    required this.onTapPiece,
     required this.onPickup,
     required this.onMove,
     required this.onDrop,
@@ -84,6 +87,13 @@ class PieceTray extends StatefulWidget {
 
   final GeneratedPuzzle puzzle;
   final FeelConfig feelConfig;
+
+  /// ピース [index] の現在の向き（ADR-0019）。描画・最近傍判定に使う。
+  final PolyominoData Function(int index) orientationOf;
+
+  /// ピース [index] がタップされたとき（回転）に呼ばれる。
+  final void Function(int index) onTapPiece;
+
   final void Function(int index, Offset pointerGlobal, Offset itemGlobal)
   onPickup;
   final void Function(Offset pointerGlobal) onMove;
@@ -122,14 +132,14 @@ class _PieceTrayState extends State<PieceTray> {
 
   // ピース i の描画幅・高さ（hitboxPad を除く）
   double _pieceDrawWidth(int i) {
-    final cells = widget.puzzle.blocks[i].orientation.cells;
+    final cells = widget.orientationOf(i).cells;
     final minX = cells.map((c) => c.$2).reduce(min);
     final maxX = cells.map((c) => c.$2).reduce(max);
     return (maxX - minX + 1) * PieceTray._trayCell;
   }
 
   double _pieceDrawHeight(int i) {
-    final cells = widget.puzzle.blocks[i].orientation.cells;
+    final cells = widget.orientationOf(i).cells;
     final minY = cells.map((c) => c.$1).reduce(min);
     final maxY = cells.map((c) => c.$1).reduce(max);
     return (maxY - minY + 1) * PieceTray._trayCell;
@@ -151,8 +161,7 @@ class _PieceTrayState extends State<PieceTray> {
 
   // ピース i の全セル中心のコンテンツ座標リスト（最近傍計算に使う）。
   List<Offset> _cellCentersInContent(int i) {
-    final block = widget.puzzle.blocks[i];
-    final cells = block.orientation.cells;
+    final cells = widget.orientationOf(i).cells;
     final minY = cells.map((c) => c.$1).reduce(min);
     final minX = cells.map((c) => c.$2).reduce(min);
 
@@ -258,7 +267,17 @@ class _PieceTrayState extends State<PieceTray> {
   }
 
   void _onPointerUp(PointerUpEvent e) {
-    if (_dragging) widget.onDrop(e.position);
+    if (_dragging) {
+      widget.onDrop(e.position);
+    } else if (!_scrollDelegated && _pickedIndex != null) {
+      // 指がほぼ動かなかった = タップ → 回転
+      // （縦ドラッグ=掴み / 横ドラッグ=スクロール と排他になる）
+      final down = _downPosition;
+      if (down != null &&
+          (e.position - down).distance < widget.feelConfig.dragStartSlop) {
+        widget.onTapPiece(_pickedIndex!);
+      }
+    }
     _reset();
   }
 
@@ -310,7 +329,7 @@ class _PieceTrayState extends State<PieceTray> {
                                 _pieceDrawHeight(i),
                               ),
                               painter: PiecePainter(
-                                block: widget.puzzle.blocks[i],
+                                orientation: widget.orientationOf(i),
                                 colorIndex: i,
                                 cellSize: PieceTray._trayCell,
                               ),

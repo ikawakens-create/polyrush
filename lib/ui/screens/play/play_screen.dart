@@ -12,6 +12,7 @@ import 'package:polyrush/game/board/grid_geometry.dart';
 import 'package:polyrush/game/board/play_board_painter.dart';
 import 'package:polyrush/game/play/feel_config.dart';
 import 'package:polyrush/game/play/placement_logic.dart';
+import 'package:polyrush/game/play/piece_orientation_state.dart';
 import 'package:polyrush/game/play/play_haptics.dart';
 import 'package:polyrush/ui/screens/play/confetti_overlay.dart';
 import 'package:polyrush/ui/screens/play/piece_tray.dart';
@@ -29,6 +30,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   int _currentSeed = 1;
   Difficulty _difficulty = Difficulty.easy;
   FeelConfig _feelConfig = const FeelConfig();
+
+  // ピースごとの現在の向き（ADR-0019 プロト: タップ回転のみ）。
+  // パズル読み込み時に解の向きで初期化し、回転でのみ更新する。
+  PieceOrientationState? _orientations;
 
   // ドラッグ状態
   int? _draggingIndex;
@@ -102,6 +107,23 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       difficulty: _difficulty,
       seed: seed,
     );
+    _orientations = switch (_result) {
+      Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
+      Err() => null,
+    };
+  }
+
+  /// ピース [index] の現在の向き（ADR-0019）。未初期化時は解の向きにフォールバック。
+  PolyominoData _orientationOf(int index, GeneratedPuzzle puzzle) =>
+      _orientations?.orientationOf(index) ??
+      puzzle.blocks[index].orientation;
+
+  /// トレイのピースをタップしたとき: 90 度回転（配置前のトレイピースのみ）。
+  void _onTapPiece(int index) {
+    final st = _orientations;
+    if (st == null) return;
+    setState(() => st.rotateCw(index));
+    PlayHaptics.pickup(); // 回転の軽い触覚（実機で要調整・不要なら外す）
   }
 
   /// 難易度を変更してパズルをリセットする。
@@ -243,8 +265,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     final boardBox = boardCtx.findRenderObject() as RenderBox?;
     if (boardBox == null) return;
 
-    final block = puzzle.blocks[index];
-    final cells = block.orientation.cells;
+    final cells = _orientationOf(index, puzzle).cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
     final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
@@ -585,7 +606,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
 
   // ── 描画 ─────────────────────────────────────────────────────────
 
-  Offset? _floatingPieceOffset(PlacedBlock block) {
+  Offset? _floatingPieceOffset(PolyominoData orientation) {
     if (_dragPosition == null) return null;
     final ctx = _stackKey.currentContext;
     if (ctx == null) return null;
@@ -593,7 +614,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     if (box == null) return null;
 
     final local = box.globalToLocal(_dragPosition!);
-    final cells = block.orientation.cells;
+    final cells = orientation.cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
@@ -611,11 +632,12 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     final index = _draggingIndex;
     if (index == null) return const SizedBox.shrink();
 
-    final block = blocks[index];
-    final offset = _floatingPieceOffset(block);
+    final orientation =
+        _orientations?.orientationOf(index) ?? blocks[index].orientation;
+    final offset = _floatingPieceOffset(orientation);
     if (offset == null) return const SizedBox.shrink();
 
-    final cells = block.orientation.cells;
+    final cells = orientation.cells;
     final minY = cells.map((c) => c.$1).reduce((a, b) => a < b ? a : b);
     final maxY = cells.map((c) => c.$1).reduce((a, b) => a > b ? a : b);
     final minX = cells.map((c) => c.$2).reduce((a, b) => a < b ? a : b);
@@ -632,7 +654,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
           child: CustomPaint(
             size: Size(pieceW, pieceH),
             painter: PiecePainter(
-              block: block,
+              orientation: orientation,
               colorIndex: index,
               cellSize: _cellSize,
             ),
@@ -929,6 +951,8 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                     puzzle: value.puzzle,
                     feelConfig: _feelConfig,
                     hiddenIndices: _buildHiddenIndices(),
+                    orientationOf: (i) => _orientationOf(i, value.puzzle),
+                    onTapPiece: _onTapPiece,
                     onPickup: (index, pointerGlobal, itemGlobal) => _onPickup(
                       index,
                       pointerGlobal,
