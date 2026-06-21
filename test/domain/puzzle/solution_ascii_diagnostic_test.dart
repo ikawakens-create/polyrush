@@ -42,8 +42,10 @@ void main() {
             final sizes = p.blocks.map((b) => b.cells.length).join('+');
             final sum = p.blocks.fold<int>(0, (s, b) => s + b.cells.length);
             // ignore: avoid_print
-            print('=== $d seed=$seed  frame=${p.frame.length}  '
-                'pieces=$sizes=$sum  (0=赤 1=青 2=緑 3=紫) ===');
+            print(
+              '=== $d seed=$seed  frame=${p.frame.length}  '
+              'pieces=$sizes=$sum  (0=赤 1=青 2=緑 3=紫) ===',
+            );
             // ignore: avoid_print
             print(_solutionAscii(p));
           case Err(:final error):
