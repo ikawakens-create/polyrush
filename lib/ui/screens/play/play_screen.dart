@@ -115,8 +115,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
 
   /// ピース [index] の現在の向き（ADR-0019）。未初期化時は解の向きにフォールバック。
   PolyominoData _orientationOf(int index, GeneratedPuzzle puzzle) =>
-      _orientations?.orientationOf(index) ??
-      puzzle.blocks[index].orientation;
+      _orientations?.orientationOf(index) ?? puzzle.blocks[index].orientation;
 
   /// トレイのピースをタップしたとき: 90 度回転（配置前のトレイピースのみ）。
   void _onTapPiece(int index) {
