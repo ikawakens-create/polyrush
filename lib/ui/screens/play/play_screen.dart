@@ -472,6 +472,12 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
       } else {
         _result = const Err(CompactPuzzleError.generationFailed);
       }
+      // ADR-0019: 「次へ」でも現在の向きを新パズルから作り直す。
+      // これを忘れると前パズルのピースが新しい枠に表示され、解けなくなる（修正済み）。
+      _orientations = switch (_result) {
+        Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
+        Err() => null,
+      };
       _placed.clear();
       _ghostCells = const [];
       _ghostValid = false;
