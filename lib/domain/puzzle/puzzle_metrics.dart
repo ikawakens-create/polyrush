@@ -60,7 +60,9 @@ PuzzleMetrics computePuzzleMetrics(GeneratedPuzzle puzzle) {
     int matchedCells = 0;
     for (final s in pieceSets) {
       final rotated = s.map<Cell>(rot).toSet();
-      final matched = pieceSets.any((t) => t.length == rotated.length && t.containsAll(rotated));
+      final matched = pieceSets.any(
+        (t) => t.length == rotated.length && t.containsAll(rotated),
+      );
       if (matched) matchedCells += s.length;
     }
     return matchedCells / frameLen;
@@ -130,7 +132,9 @@ PuzzleMetrics computePuzzleMetrics(GeneratedPuzzle puzzle) {
 
   // orientationUsageRatio
   final usedCount = blocks.where((b) => b.orientation != b.source).length;
-  final orientationUsageRatio = blocks.isNotEmpty ? usedCount / blocks.length : 0.0;
+  final orientationUsageRatio = blocks.isNotEmpty
+      ? usedCount / blocks.length
+      : 0.0;
 
   return PuzzleMetrics(
     rotationalSymmetry90: sym90,
