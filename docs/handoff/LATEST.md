@@ -1,66 +1,196 @@
-# Handoff: feature/non-triviality-filter
+# Handoff: chore/solution-ascii-diagnostic
 
 - 日付: 2026-06-21
-- タスク: ADR-0018 非自明性フィルタ実装（separable 棄却＆再生成）
+- タスク: 解ASCII + 枠/ピース内訳ダンプ 診断テスト追加
 
 ## 1. 環境チェック結果
 
-ブランチ: feature/non-triviality-filter（develop から手動作成）。
-develop の最新コミット 86ccc4b を含む。
-feature/puzzle-metrics ブランチを merge して puzzle_metrics.dart を取り込んだ。
+ブランチ: chore/solution-ascii-diagnostic（develop から手動作成）。
+develop の最新コミット d9c3630 を含む。
 
-git log --oneline -5 (作業開始時点):
-  86ccc4b docs: ADR-0018 非自明性フィルタ (separable 棄却＆再生成) の草案を追加 (#85)
-  6e4eeb4 docs: ADR-0017 非自明性メトリクス計測専用層 (PuzzleMetrics) の草案を追加 (#84)
-  6187dc5 feat(haptics): プレイ画面に触覚フィードバックを追加 (#83)
-  308d8b9 docs: ADR-0016 handoff ファイル方式を導入し CLAUDE.md を更新 (#82)
-  6438262 docs: ADR-0015 手触り調整パネルと snapRadius 確定値を記録 (#80)
+git log --oneline -3 (作業開始時点):
+  d9c3630 docs: ADR-0019 ピースの回転・反転と初期向きランダム化の草案を追加 (#88)
+  19745c7 Feature/non triviality filter (#87)
+  de9f2d6 Feature/puzzle metrics (#86)
 
 ## 2. 作成ファイル一覧
 
 新規:
-  lib/domain/puzzle/non_trivial_puzzle_generator.dart — NonTrivialPuzzleGenerator ラッパー
-  test/domain/puzzle/non_trivial_puzzle_generator_test.dart — テスト（unit + レポート）
+  test/domain/puzzle/solution_ascii_diagnostic_test.dart — 診断専用テスト（診断のみ・常に pass）
 
 変更:
-  lib/ui/screens/play/play_screen.dart — CompactPuzzleGeneratorV3 → NonTrivialPuzzleGenerator に差し替え（2箇所）
   docs/handoff/LATEST.md — 本ファイル
 
-取り込み済み（feature/puzzle-metrics merge）:
-  lib/domain/puzzle/puzzle_metrics.dart — ADR-0017 計測専用層（確定資産・変更なし）
-  test/domain/puzzle/puzzle_metrics_test.dart — 既存テスト（変更なし）
+lib/ 以下は一切変更なし。
 
 ## 3. 削除・変更した既存ファイルと理由
 
-play_screen.dart の変更内容（生成呼び出し差し替えのみ）:
-- import compact_puzzle_generator_v3.dart → non_trivial_puzzle_generator.dart に変更
-- _loadPuzzle() の CompactPuzzleGeneratorV3.generate → NonTrivialPuzzleGenerator.generate
-- _goNext() の CompactPuzzleGeneratorV3.generate → NonTrivialPuzzleGenerator.generate
-- それ以外のロジックは一切変更なし
+なし。
 
 ## 4. テスト結果
 
-flutter test: 665件すべて pass（14秒）
-flutter analyze: error / warning ゼロ（avoid_print info は既存含む）
+flutter analyze: error / warning ゼロ（avoid_print info は既存含む・pre-push hook 通過）
+flutter test (診断テスト単体): 1件 pass（00:00）
 
-レポートテスト出力:
-  NORMAL separable_rate: フィルタ前 36.0% → フィルタ後 0.0%（フォールバック 0/100）
-  HARD   separable_rate: フィルタ前 41.0% → フィルタ後 0.0%（フォールバック 0/100）
+テスト print 出力（easy seed 1-10 / normal seed 1-10、全文）:
+
+=== Difficulty.easy seed=1  frame=11  pieces=3+4+4=11  (0=赤 1=青 2=緑 3=紫) ===
+.1..
+.11.
+.01.
+.00.
+2222
+
+=== Difficulty.easy seed=2  frame=11  pieces=4+4+3=11  (0=赤 1=青 2=緑 3=紫) ===
+2.
+22
+0.
+00
+10
+11
+1.
+
+=== Difficulty.easy seed=3  frame=11  pieces=4+3+4=11  (0=赤 1=青 2=緑 3=紫) ===
+0..
+0.2
+022
+012
+11.
+
+=== Difficulty.easy seed=4  frame=11  pieces=4+4+3=11  (0=赤 1=青 2=緑 3=紫) ===
+222
+11.
+11.
+0..
+00.
+0..
+
+=== Difficulty.easy seed=5  frame=10  pieces=3+3+4=10  (0=赤 1=青 2=緑 3=紫) ===
+1.2
+122
+102
+00.
+
+=== Difficulty.easy seed=6  frame=11  pieces=4+4+3=11  (0=赤 1=青 2=緑 3=紫) ===
+0222
+0111
+001.
+
+=== Difficulty.easy seed=7  frame=11  pieces=3+4+4=11  (0=赤 1=青 2=緑 3=紫) ===
+22..
+20..
+2011
+.011
+
+=== Difficulty.easy seed=8  frame=12  pieces=4+4+4=12  (0=赤 1=青 2=緑 3=紫) ===
+.1..
+111.
+.00.
+.00.
+2222
+
+=== Difficulty.easy seed=9  frame=11  pieces=4+4+3=11  (0=赤 1=青 2=緑 3=紫) ===
+.1..
+.11.
+0122
+0002
+
+=== Difficulty.easy seed=10  frame=11  pieces=4+4+3=11  (0=赤 1=青 2=緑 3=紫) ===
+..112
+..112
+00002
+
+=== Difficulty.normal seed=1  frame=18  pieces=5+5+4+4=18  (0=赤 1=青 2=緑 3=紫) ===
+.1111.
+310000
+33220.
+3.22..
+
+=== Difficulty.normal seed=2  frame=17  pieces=4+4+4+5=17  (0=赤 1=青 2=緑 3=紫) ===
+...22
+...02
+..002
+.310.
+.311.
+3331.
+
+=== Difficulty.normal seed=3  frame=17  pieces=4+4+4+5=17  (0=赤 1=青 2=緑 3=紫) ===
+...22
+...02
+..002
+.310.
+.311.
+3331.
+
+=== Difficulty.normal seed=4  frame=18  pieces=4+5+4+5=18  (0=赤 1=青 2=緑 3=紫) ===
+12222
+1113.
+.013.
+.0033
+.0..3
+
+=== Difficulty.normal seed=5  frame=18  pieces=5+4+4+5=18  (0=赤 1=青 2=緑 3=紫) ===
+333332
+...022
+110002
+.110..
+
+=== Difficulty.normal seed=6  frame=19  pieces=5+5+4+5=19  (0=赤 1=青 2=緑 3=紫) ===
+2110000
+22110..
+2.313..
+..333..
+
+=== Difficulty.normal seed=7  frame=19  pieces=5+5+4+5=19  (0=赤 1=青 2=緑 3=紫) ===
+2110000
+22110..
+2.313..
+..333..
+
+=== Difficulty.normal seed=8  frame=19  pieces=5+5+4+5=19  (0=赤 1=青 2=緑 3=紫) ===
+2110000
+22110..
+2.313..
+..333..
+
+=== Difficulty.normal seed=9  frame=19  pieces=5+5+4+5=19  (0=赤 1=青 2=緑 3=紫) ===
+..3..
+22333
+2213.
+11110
+.0000
+
+=== Difficulty.normal seed=10  frame=18  pieces=5+5+4+4=18  (0=赤 1=青 2=緑 3=紫) ===
+2....
+2.333
+2.103
+21100
+1100.
 
 ## 5. 指示書からの逸脱
 
-なし。システム割当ブランチは使用せず feature/non-triviality-filter を手動作成。
+システム割当ブランチではなく、chore/solution-ascii-diagnostic を develop から手動作成。
+指示書のブランチ名通り。
 
 ## 6. PR
 
-PR #87: feature/non-triviality-filter → develop
+なし（§5 指示：「PR は作らない」）。
 
 ## 7. 次セッションへの申し送り
 
-1. 非自明性メトリクスは計測→較正→組み込みまで一周完了。
-   PuzzleMetrics で計測（ADR-0017）、separable を主指標に較正（井川+Opus 目視）、
-   NORMAL/HARD で separable 棄却フィルタを適用（ADR-0018）。
-   フィルタ後 separable_rate: NORMAL 0% / HARD 0%（seed 1-100 で確認、フォールバック 0件）。
+1. 診断テスト（solution_ascii_diagnostic_test.dart）は chore/solution-ascii-diagnostic
+   ブランチに push 済み。PR は作っていない。Opus がこの出力を確認後、
+   次のタスクを判断する想定。
 
-2. 回転・反転の欠如が本物ウボンゴとの最大の差。独立 ADR で要対応（大改修、保護対象に及ぶ）。
-   orientationUsageRatio 約0.6（NORMAL 0.675 / HARD 0.650）が根拠データ。
+2. easy の観察:
+   - easy seed=1,8: 縦長レイアウト。seed=8 は frame=12 と最大。
+   - easy seed=2: 非常に縦長（7行×2列）。極端に細い形状。
+   - easy seed=5: frame=10 と最小（3+3+4）。
+
+3. normal の観察:
+   - normal seed=2 と seed=3 が完全に同一解（seed多様性の問題あり）。
+   - normal seed=6,7,8 も完全に同一解（3 seeds が同一）。
+   - 回転・反転が無いため同一向きパターンが重複しやすい。ADR-0019 実装が急務。
+
+4. 回転 PR #89（feature/rotation-prototype）はまだマージ待ち。
+   本タスクの診断結果を Opus に渡し、回転実装方針の最終確認へ。
