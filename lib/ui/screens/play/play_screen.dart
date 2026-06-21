@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:polyrush/core/result.dart';
 import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
-import 'package:polyrush/domain/puzzle/compact_puzzle_generator_v3.dart';
+import 'package:polyrush/domain/puzzle/non_trivial_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
 import 'package:polyrush/domain/puzzle/polyomino.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
@@ -98,7 +98,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   /// パズルを生成して _result と _currentSeed を更新する共通ヘルパー。
   void _loadPuzzle(int seed) {
     _currentSeed = seed;
-    _result = CompactPuzzleGeneratorV3.generate(
+    _result = NonTrivialPuzzleGenerator.generate(
       difficulty: _difficulty,
       seed: seed,
     );
@@ -423,7 +423,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     for (int i = 0; i < maxAttempts; i++) {
       final candidate = rng.nextInt(1000000) + 1;
       if (candidate == _currentSeed) continue;
-      final r = CompactPuzzleGeneratorV3.generate(
+      final r = NonTrivialPuzzleGenerator.generate(
         difficulty: _difficulty,
         seed: candidate,
       );
