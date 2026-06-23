@@ -104,10 +104,7 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   void _loadPuzzle(int seed) {
     _currentSeed = seed;
     _applyResult(
-      NonTrivialPuzzleGenerator.generate(
-        difficulty: _difficulty,
-        seed: seed,
-      ),
+      NonTrivialPuzzleGenerator.generate(difficulty: _difficulty, seed: seed),
     );
   }
 
