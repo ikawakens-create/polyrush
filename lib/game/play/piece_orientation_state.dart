@@ -17,6 +17,9 @@ class PieceOrientationState {
   /// ピース [index] の現在の向き。
   PolyominoData orientationOf(int index) => _orientations[index];
 
+  /// ピース数。
+  int get length => _orientations.length;
+
   /// ピース [index] を時計回りに 90 度回転する（結果は正規化済み）。
   void rotateCw(int index) {
     _orientations[index] = PolyominoTransformer.rotate90(_orientations[index]);

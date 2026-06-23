@@ -103,14 +103,45 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   /// パズルを生成して _result と _currentSeed を更新する共通ヘルパー。
   void _loadPuzzle(int seed) {
     _currentSeed = seed;
-    _result = NonTrivialPuzzleGenerator.generate(
-      difficulty: _difficulty,
-      seed: seed,
+    _applyResult(
+      NonTrivialPuzzleGenerator.generate(
+        difficulty: _difficulty,
+        seed: seed,
+      ),
     );
-    _orientations = switch (_result) {
+  }
+
+  /// _result を更新し、_orientations を必ず同期させる（ADR-0019）。
+  /// _result を変える経路は必ずこのヘルパーを通すこと（向き作り直し忘れ防止）。
+  void _applyResult(Result<VerifiedPuzzle, CompactPuzzleError> result) {
+    _result = result;
+    _orientations = switch (result) {
       Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
       Err() => null,
     };
+  }
+
+  @visibleForTesting
+  void debugGoNext() => _goNext();
+
+  @visibleForTesting
+  bool get debugOrientationsInSync {
+    final r = _result;
+    if (r is! Ok<VerifiedPuzzle, CompactPuzzleError>) {
+      return _orientations == null;
+    }
+    final blocks = r.value.puzzle.blocks;
+    final st = _orientations;
+    if (st == null || st.length != blocks.length) return false;
+    for (var i = 0; i < blocks.length; i++) {
+      final a = st.orientationOf(i).cells;
+      final b = blocks[i].orientation.cells;
+      if (a.length != b.length) return false;
+      for (var k = 0; k < a.length; k++) {
+        if (a[k] != b[k]) return false;
+      }
+    }
+    return true;
   }
 
   /// ピース [index] の現在の向き（ADR-0019）。未初期化時は解の向きにフォールバック。
@@ -468,16 +499,10 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     setState(() {
       if (okResult != null) {
         _currentSeed = newSeed;
-        _result = okResult;
+        _applyResult(okResult);
       } else {
-        _result = const Err(CompactPuzzleError.generationFailed);
+        _applyResult(const Err(CompactPuzzleError.generationFailed));
       }
-      // ADR-0019: 「次へ」でも現在の向きを新パズルから作り直す。
-      // これを忘れると前パズルのピースが新しい枠に表示され、解けなくなる（修正済み）。
-      _orientations = switch (_result) {
-        Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
-        Err() => null,
-      };
       _placed.clear();
       _ghostCells = const [];
       _ghostValid = false;
