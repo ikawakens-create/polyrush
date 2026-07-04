@@ -1,7 +1,8 @@
-# Handoff: feature/piece-flip（システム割当ブランチ claude/piece-flip-double-tap-19e9vp で実施）
+# Handoff: feature/piece-flip（システム割当ブランチ claude/piece-flip-double-tap-19e9vp で実施 / PR #93）
 
 - 日付: 2026-07-04
 - タスク: ロードマップ ②.5「反転UI」実装（案A: ダブルタップで反転）
+  + PR #93 追加修正1件（ドラッグ開始時の保留タップ誤発火バグ修正）
 
 ## 1. 環境チェック結果
 
@@ -44,7 +45,8 @@ CLAUDE.md の「例外: システム割当ブランチ」規定に従い、こ�
 
 - 変更: lib/game/play/piece_orientation_state.dart（flip(index) を追加）
 - 変更: lib/ui/screens/play/piece_tray.dart（ダブルタップ手動判定 _handleTap を追加、
-  onFlipPiece コールバックを追加）
+  onFlipPiece コールバックを追加。追加修正: ドラッグ開始確定箇所に
+  _cancelPendingTapForDragStart を追加）
 - 変更: lib/ui/screens/play/play_screen.dart（_onFlipPiece 配線）
 - 変更: test/game/play/piece_orientation_state_test.dart（flip テストを1件追加）
 - 変更: docs/adr/0019-piece-rotation-flip.md（末尾に追補セクションを追記）
@@ -57,6 +59,12 @@ CLAUDE.md の「例外: システム割当ブランチ」規定に従い、こ�
   PolyominoTransformer 自体には一切触れていない。
 - piece_tray.dart: トレイのタップ検出が自前 Listener のため onDoubleTap が
   使えず、指示書通り Timer によるダブルタップ手動判定（_handleTap）を追加。
+  追加修正（PR #93）: タップ後 250ms の回転保留タイマーが生きたままドラッグが
+  開始されると、ドラッグ中に保留していた回転（onTapPiece）が発火してしまう
+  バグを修正。ドラッグ開始が確定する箇所（widget.onPickup 直前）で
+  _cancelPendingTapForDragStart を呼び、保留中のタップがドラッグ対象と同じ
+  ピースならタイマーを破棄（回転させない）、別ピースなら先にその回転を
+  確定してから保留をクリアする。
 - play_screen.dart: _onFlipPiece を追加し PieceTray に配線。_result /
   _orientations や _applyResult には一切触れていない。
 - 変更禁止ファイル（polyomino.dart / polyomino_transformer.dart /
@@ -76,6 +84,15 @@ CLAUDE.md の「例外: システム割当ブランチ」規定に従い、こ�
   新規追加の「flip を 2 回適用すると元の向きに戻る」を含む）。
 - `dart format --output=none --set-exit-if-changed` で変更4ファイルとも
   フォーマット差分なしを確認。
+
+### PR #93 追加修正（ドラッグ中の保留タップ誤発火バグ）
+
+- `flutter analyze --no-fatal-infos`: エラー・警告ゼロ。info 52件のみ
+  （修正前と同数・同内容。今回の変更由来の info は0件）。所要時間 約13.6秒。
+- `flutter test`: 671 件 pass / 0 fail（既存件数のまま。新規テスト追加なし
+  ―― 指示書通り既存 671 件が pass のままであることの確認）。
+- `dart format --output=none --set-exit-if-changed lib/ui/screens/play/piece_tray.dart`:
+  フォーマット差分なし。
 
 ## 5. 指示書からの逸脱
 
@@ -101,3 +118,8 @@ develop の最新コミット（a040818）を含むことを確認した上で�
    （ADR-0019 追補に記載済み）。
 4. ダブルタップの待ち時間（250ms）は実機の手触り次第で調整・見直しの余地あり
    （ADR-0019 追補に既知トレードオフとして記載）。
+5. PR #93 追加修正: ドラッグ開始時に保留中のタップ判定を解消する
+   _cancelPendingTapForDragStart を追加し、「タップ後 250ms 以内にドラッグを
+   開始すると保留していた回転が誤発火する」バグを修正済み。既存テストは
+   671 件のまま pass（このバグに対する新規テストは未追加。実機/ウィジェット
+   テストでの再現テスト追加は次回の検討候補）。

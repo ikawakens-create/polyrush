@@ -276,6 +276,7 @@ class _PieceTrayState extends State<PieceTray> {
       // 縦方向（上下どちらでも）の動き → 掴み開始
       _dragging = true;
       final index = _pickedIndex!;
+      _cancelPendingTapForDragStart(index);
       widget.onPickup(index, e.position, _itemCenterGlobal(index));
     } else {
       // 横方向（真横寄り） → スクロールに委譲（以後このジェスチャでは掴まない）
@@ -308,6 +309,27 @@ class _PieceTrayState extends State<PieceTray> {
     _pickedIndex = null;
     _dragging = false;
     _scrollDelegated = false;
+  }
+
+  /// ドラッグ開始が確定した際、保留中のタップ判定（ダブルタップ待ち）を
+  /// 解消する（PR #93: ドラッグ中に保留タイマーが誤って回転を発火する
+  /// バグの修正）。
+  ///
+  /// ドラッグ開始する [dragIndex] のタップが保留中なら、それは
+  /// ドラッグの起点となった 1 回目のタップなのでキャンセルして破棄する
+  /// （回転させない）。別ピースのタップが保留中なら、その回転を
+  /// 先に確定してから保留をクリアする（_handleTap の「別ピース」分岐と同じ扱い）。
+  void _cancelPendingTapForDragStart(int dragIndex) {
+    final timer = _tapTimer;
+    final pending = _pendingTapIndex;
+    if (timer == null || !timer.isActive) return;
+
+    timer.cancel();
+    _tapTimer = null;
+    _pendingTapIndex = null;
+    if (pending != null && pending != dragIndex) {
+      widget.onTapPiece(pending);
+    }
   }
 
   /// タップを回転／反転に振り分ける（②.5 反転UI・ADR-0019 追補）。
