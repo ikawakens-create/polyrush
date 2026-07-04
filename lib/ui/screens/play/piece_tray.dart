@@ -129,8 +129,9 @@ class _PieceTrayState extends State<PieceTray> {
 
   /// ダブルタップ（反転）判定の待ち時間。1 回目のタップからこの時間内に
   /// 同じピースを再タップしたら反転、時間切れなら回転を発火する。
-  /// 実機で詰めたくなったら FeelConfig へ昇格させる。
-  static const int _doubleTapMs = 250;
+  /// 実機評価により 250ms は回転の遅延が気になったため 125ms に短縮した
+  /// （ADR-0019 ③）。さらに詰めたくなったら FeelConfig へ昇格させる。
+  static const int _doubleTapMs = 125;
 
   /// 回転を保留しているタイマー（ダブルタップ待ち）。dispose でキャンセルする。
   Timer? _tapTimer;

@@ -104,7 +104,7 @@ normal/hard は全ユニーク向き（反転込み）。よって easy はタ�
 | ① | _applyResult() リファクタ | 2 | _result/_orientations をセット更新する構造の強制＋リグレッションテスト | PR #89 マージ | 設計済・次PR |
 | ②a | easy forgiveness 計測CI | 2 | easy シード帯の解数分布・orientationUsageRatio 分布を出す計測のみ（挙動不変・小PR） | ① | 設計済・実装中 |
 | ②.5 | 反転操作 | 2 | PieceOrientationState に反転追加＋UI操作（ダブルタップ推奨・要実機確認）。ADR-0019 追補。easy には反転を配らない（forgiveness） | ②a | 新規 |
-| ③ | スクランブル＋forgiveness統合 | 2 | 初期向きランダム化＋難易度別 floor/cap（easy: floor=1/cap=1、normal/hard: floor=0/cap=K）＋対称ピース除外。easy は回転のみ／normal・hard は反転込み全向き。ADR-0019 完結＋追補 | ②.5 必須 | 待機 |
+| ③ | スクランブル＋forgiveness統合 | 2 | 初期向きランダム化＋難易度別 floor/cap（easy: floor=1/cap=1、normal/hard: floor=0/cap=2）＋対称ピース除外。easy は回転のみ／normal・hard は反転込み全向き。ADR-0019 完結＋追補 | ②.5 必須 | 完了 |
 | ④ | 枠ファースト計測CI | 3 | ランダム枠への敷き詰め可能セット数・所要msの計測テストのみ（小PR） | ③ | 新規 |
 | ⑤ | ADR-0020＋枠ファースト生成器 | 3 | ずんぐり枠先行生成。V3と切替式で並存 | ④の結果が良好 | 新規 |
 | ⑥ | マルチセット化 | 3 | 1枠から複数ピースセットを取得・出題 | ⑤ | 新規 |

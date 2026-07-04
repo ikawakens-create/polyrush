@@ -6,6 +6,7 @@ import 'package:polyrush/domain/puzzle/compact_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/non_trivial_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/difficulty.dart';
 import 'package:polyrush/domain/puzzle/polyomino.dart';
+import 'package:polyrush/domain/puzzle/polyomino_transformer.dart';
 import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/verified_puzzle_generator.dart';
 import 'package:polyrush/game/board/grid_geometry.dart';
@@ -117,7 +118,10 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   void _applyResult(Result<VerifiedPuzzle, CompactPuzzleError> result) {
     _result = result;
     _orientations = switch (result) {
-      Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
+      Ok(:final value) => PieceOrientationState.scrambled(
+        value.puzzle,
+        _difficulty,
+      ),
       Err() => null,
     };
   }
@@ -126,7 +130,11 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   ///
   /// PR #89 の状態同期バグ（_result 更新時に _orientations が前パズルの
   /// ままになる）の再発をリグレッションテストで検出するために使う。
-  /// ロード直後（回転前）は各ピースの現在向きが解の向きと一致する。
+  /// ADR-0019 ③ でスクランブルを導入したため、ロード直後の現在向きは
+  /// 解の向き（blocks[i].orientation）と一致するとは限らない。
+  /// そのため「同じピース（source）の何らかの有効な向きになっているか」
+  /// （PolyominoTransformer.areEquivalent）で同期を判定する。
+  /// 前パズルの向きが残っていれば形状が異なるため false になる。
   @visibleForTesting
   bool debugOrientationsInSyncWithResult() {
     switch (_result) {
@@ -136,7 +144,12 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
         final blocks = value.puzzle.blocks;
         if (st.length != blocks.length) return false;
         for (var i = 0; i < blocks.length; i++) {
-          if (st.orientationOf(i) != blocks[i].orientation) return false;
+          if (!PolyominoTransformer.areEquivalent(
+            st.orientationOf(i),
+            blocks[i].source,
+          )) {
+            return false;
+          }
         }
         return true;
       case Err():
