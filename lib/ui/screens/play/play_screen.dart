@@ -22,10 +22,10 @@ class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
 
   @override
-  State<PlayScreen> createState() => _PlayScreenState();
+  State<PlayScreen> createState() => PlayScreenState();
 }
 
-class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
+class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   late Result<VerifiedPuzzle, CompactPuzzleError> _result;
   int _currentSeed = 1;
   Difficulty _difficulty = Difficulty.easy;
@@ -103,15 +103,54 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   /// パズルを生成して _result と _currentSeed を更新する共通ヘルパー。
   void _loadPuzzle(int seed) {
     _currentSeed = seed;
-    _result = NonTrivialPuzzleGenerator.generate(
-      difficulty: _difficulty,
-      seed: seed,
+    _applyResult(
+      NonTrivialPuzzleGenerator.generate(difficulty: _difficulty, seed: seed),
     );
-    _orientations = switch (_result) {
+  }
+
+  /// _result と _orientations を必ずセットで更新する唯一の入口。
+  ///
+  /// PR #89 で「_result だけ更新して _orientations を前パズルのまま
+  /// 放置した」状態同期バグが発生したため、この 2 つの状態変数への
+  /// 代入はここに集約する。今後 _result / _orientations への直接代入を
+  /// 新たに書かないこと（必ず _applyResult 経由にする）。
+  void _applyResult(Result<VerifiedPuzzle, CompactPuzzleError> result) {
+    _result = result;
+    _orientations = switch (result) {
       Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
       Err() => null,
     };
   }
+
+  /// テスト専用: _orientations が現在の _result と同期しているかを返す。
+  ///
+  /// PR #89 の状態同期バグ（_result 更新時に _orientations が前パズルの
+  /// ままになる）の再発をリグレッションテストで検出するために使う。
+  /// ロード直後（回転前）は各ピースの現在向きが解の向きと一致する。
+  @visibleForTesting
+  bool debugOrientationsInSyncWithResult() {
+    switch (_result) {
+      case Ok(:final value):
+        final st = _orientations;
+        if (st == null) return false;
+        final blocks = value.puzzle.blocks;
+        if (st.length != blocks.length) return false;
+        for (var i = 0; i < blocks.length; i++) {
+          if (st.orientationOf(i) != blocks[i].orientation) return false;
+        }
+        return true;
+      case Err():
+        return _orientations == null;
+    }
+  }
+
+  /// テスト専用: 「次へ」相当（_goNext）を直接呼ぶフック。
+  ///
+  /// 実際の「次へ」ボタンはクリアオーバーレイ内にしか出ず、クリアの
+  /// 成立はピクセル依存で widget テストが不安定になる。状態遷移だけを
+  /// テストから確実に叩くためのフック。
+  @visibleForTesting
+  void debugGoToNextPuzzle() => _goNext();
 
   /// ピース [index] の現在の向き（ADR-0019）。未初期化時は解の向きにフォールバック。
   PolyominoData _orientationOf(int index, GeneratedPuzzle puzzle) =>
@@ -468,16 +507,13 @@ class _PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     setState(() {
       if (okResult != null) {
         _currentSeed = newSeed;
-        _result = okResult;
+        _applyResult(okResult);
       } else {
-        _result = const Err(CompactPuzzleError.generationFailed);
+        _applyResult(const Err(CompactPuzzleError.generationFailed));
       }
-      // ADR-0019: 「次へ」でも現在の向きを新パズルから作り直す。
-      // これを忘れると前パズルのピースが新しい枠に表示され、解けなくなる（修正済み）。
-      _orientations = switch (_result) {
-        Ok(:final value) => PieceOrientationState.fromPuzzle(value.puzzle),
-        Err() => null,
-      };
+      // ADR-0019 / PR #89: _result と _orientations は必ず _applyResult で
+      // セット更新する。ここで直接 _orientations を再生成しない
+      //（同期は _applyResult が保証する）。
       _placed.clear();
       _ghostCells = const [];
       _ghostValid = false;

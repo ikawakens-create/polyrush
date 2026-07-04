@@ -14,6 +14,9 @@ class PieceOrientationState {
 
   final List<PolyominoData> _orientations;
 
+  /// 保持しているピース数。
+  int get length => _orientations.length;
+
   /// ピース [index] の現在の向き。
   PolyominoData orientationOf(int index) => _orientations[index];
 
