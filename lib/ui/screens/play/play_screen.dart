@@ -164,6 +164,14 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
     PlayHaptics.pickup(); // 回転の軽い触覚（実機で要調整・不要なら外す）
   }
 
+  /// トレイのピースをダブルタップしたとき: 左右反転（配置前のトレイピースのみ）。
+  void _onFlipPiece(int index) {
+    final st = _orientations;
+    if (st == null) return;
+    setState(() => st.flip(index));
+    PlayHaptics.pickup(); // 反転の軽い触覚（実機で要調整・不要なら外す）
+  }
+
   /// 難易度を変更してパズルをリセットする。
   void _changeDifficulty(Difficulty d) {
     _glowCtrl?.stop();
@@ -994,6 +1002,7 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
                     hiddenIndices: _buildHiddenIndices(),
                     orientationOf: (i) => _orientationOf(i, value.puzzle),
                     onTapPiece: _onTapPiece,
+                    onFlipPiece: _onFlipPiece,
                     onPickup: (index, pointerGlobal, itemGlobal) => _onPickup(
                       index,
                       pointerGlobal,

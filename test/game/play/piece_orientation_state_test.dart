@@ -40,5 +40,13 @@ void main() {
       }
       expect(state.orientationOf(0).cells, before);
     });
+
+    test('flip を 2 回適用すると元の向きに戻る', () {
+      final state = PieceOrientationState.fromPuzzle(puzzle);
+      final before = state.orientationOf(0).cells;
+      state.flip(0);
+      state.flip(0);
+      expect(state.orientationOf(0).cells, before);
+    });
   });
 }

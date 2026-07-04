@@ -6,8 +6,8 @@ import 'package:polyrush/domain/puzzle/puzzle_generator.dart';
 ///
 /// 確定資産（PolyominoTransformer / PlacedBlock）はラップして使うだけ。
 /// プロト段階では初期向きを解の向き（block.orientation）に合わせ、
-/// タップによる 90 度回転のみを提供する。
-/// 初期向きランダム化・反転・K 判定は次 PR で本クラスに追加する。
+/// タップによる 90 度回転（rotateCw）と左右反転（flip）を提供する。
+/// 初期向きランダム化・K 判定は次 PR で本クラスに追加する。
 class PieceOrientationState {
   PieceOrientationState.fromPuzzle(GeneratedPuzzle puzzle)
     : _orientations = [for (final b in puzzle.blocks) b.orientation];
@@ -23,5 +23,15 @@ class PieceOrientationState {
   /// ピース [index] を時計回りに 90 度回転する（結果は正規化済み）。
   void rotateCw(int index) {
     _orientations[index] = PolyominoTransformer.rotate90(_orientations[index]);
+  }
+
+  /// ピース [index] を左右反転する（結果は正規化済み・ADR-0019 追補）。
+  ///
+  /// 確定資産 PolyominoTransformer.flipHorizontal を呼ぶだけのラップ。
+  /// flipHorizontal 1 種 + rotateCw で全 8 向きに到達できる。
+  void flip(int index) {
+    _orientations[index] = PolyominoTransformer.flipHorizontal(
+      _orientations[index],
+    );
   }
 }

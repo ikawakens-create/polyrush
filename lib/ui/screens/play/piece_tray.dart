@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -79,6 +80,7 @@ class PieceTray extends StatefulWidget {
     required this.feelConfig,
     required this.orientationOf,
     required this.onTapPiece,
+    required this.onFlipPiece,
     required this.onPickup,
     required this.onMove,
     required this.onDrop,
@@ -93,6 +95,9 @@ class PieceTray extends StatefulWidget {
 
   /// ピース [index] がタップされたとき（回転）に呼ばれる。
   final void Function(int index) onTapPiece;
+
+  /// ピース [index] がダブルタップされたとき（左右反転）に呼ばれる（②.5 反転UI）。
+  final void Function(int index) onFlipPiece;
 
   final void Function(int index, Offset pointerGlobal, Offset itemGlobal)
   onPickup;
@@ -122,8 +127,20 @@ class _PieceTrayState extends State<PieceTray> {
   /// true のとき、このジェスチャはスクロールに委譲済み（掴みは発火しない）。
   bool _scrollDelegated = false;
 
+  /// ダブルタップ（反転）判定の待ち時間。1 回目のタップからこの時間内に
+  /// 同じピースを再タップしたら反転、時間切れなら回転を発火する。
+  /// 実機で詰めたくなったら FeelConfig へ昇格させる。
+  static const int _doubleTapMs = 250;
+
+  /// 回転を保留しているタイマー（ダブルタップ待ち）。dispose でキャンセルする。
+  Timer? _tapTimer;
+
+  /// 回転を保留しているピースの index（ダブルタップ待ち）。
+  int? _pendingTapIndex;
+
   @override
   void dispose() {
+    _tapTimer?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -275,7 +292,7 @@ class _PieceTrayState extends State<PieceTray> {
       final down = _downPosition;
       if (down != null &&
           (e.position - down).distance < widget.feelConfig.dragStartSlop) {
-        widget.onTapPiece(_pickedIndex!);
+        _handleTap(_pickedIndex!);
       }
     }
     _reset();
@@ -291,6 +308,43 @@ class _PieceTrayState extends State<PieceTray> {
     _pickedIndex = null;
     _dragging = false;
     _scrollDelegated = false;
+  }
+
+  /// タップを回転／反転に振り分ける（②.5 反転UI・ADR-0019 追補）。
+  ///
+  /// トレイは自前のポインタ処理（GestureDetector ではなく Listener）でタップを
+  /// 検出しているため、Flutter 標準の onDoubleTap が使えない。ここで手動判定する:
+  /// 1 回目のタップは即座に回転せず [_doubleTapMs] だけ待つ。待っている間に
+  /// 同じピースを再タップしたら「ダブルタップ＝反転」とみなし回転しない。
+  /// 別ピースをタップしたら保留中の回転を先に確定してから新しいタップを保留する。
+  /// 時間切れなら「シングルタップ＝回転」を発火する。
+  void _handleTap(int index) {
+    final timer = _tapTimer;
+    final pending = _pendingTapIndex;
+
+    // 同じピースの 2 回目 → ダブルタップ＝反転（保留中の回転はキャンセル）
+    if (timer != null && timer.isActive && pending == index) {
+      timer.cancel();
+      _tapTimer = null;
+      _pendingTapIndex = null;
+      widget.onFlipPiece(index);
+      return;
+    }
+
+    // 別ピースの保留が残っていれば、その回転を先に確定する
+    if (timer != null && timer.isActive && pending != null) {
+      timer.cancel();
+      widget.onTapPiece(pending);
+    }
+
+    // このタップを保留し、時間切れで回転を発火する
+    _pendingTapIndex = index;
+    _tapTimer = Timer(const Duration(milliseconds: _doubleTapMs), () {
+      final fire = _pendingTapIndex;
+      _tapTimer = null;
+      _pendingTapIndex = null;
+      if (fire != null) widget.onTapPiece(fire);
+    });
   }
 
   @override
