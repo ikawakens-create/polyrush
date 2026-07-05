@@ -44,6 +44,19 @@ class PieceOrientationState {
     _orientations[index] = PolyominoTransformer.rotate90(_orientations[index]);
   }
 
+  /// ピース [index] を反時計回りに 90 度回転する（結果は正規化済み）。
+  ///
+  /// 待ちなし方式のダブルタップ（②.5/③ 追補）で、1 回目のタップで即座に
+  /// 適用された回転を取り消してから反転するために使う。
+  /// rotate90 を 3 回適用するだけのラップ（確定資産 PolyominoTransformer 不触）。
+  void rotateCcw(int index) {
+    var v = _orientations[index];
+    for (var i = 0; i < 3; i++) {
+      v = PolyominoTransformer.rotate90(v);
+    }
+    _orientations[index] = v;
+  }
+
   /// ピース [index] を左右反転する（結果は正規化済み・ADR-0019 追補）。
   ///
   /// 確定資産 PolyominoTransformer.flipHorizontal を呼ぶだけのラップ。

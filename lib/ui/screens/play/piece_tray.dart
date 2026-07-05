@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -127,21 +126,23 @@ class _PieceTrayState extends State<PieceTray> {
   /// true のとき、このジェスチャはスクロールに委譲済み（掴みは発火しない）。
   bool _scrollDelegated = false;
 
-  /// ダブルタップ（反転）判定の待ち時間。1 回目のタップからこの時間内に
-  /// 同じピースを再タップしたら反転、時間切れなら回転を発火する。
-  /// 実機評価により 250ms は回転の遅延が気になったため 125ms に短縮した
-  /// （ADR-0019 ③）。さらに詰めたくなったら FeelConfig へ昇格させる。
-  static const int _doubleTapMs = 125;
+  /// ダブルタップ（反転）判定の窓。1 回目のタップからこの時間内に同じピースを
+  /// 再タップしたらダブルタップ＝反転とみなす（待ちなし方式）。
+  /// 待ちあり方式（Timer で回転を保留）は「窓を短くすると反転が不安定、
+  /// 長くすると回転がもっさりする」ジレンマがあったため廃止した。
+  /// 待ちなし方式は 1 回目のタップで即座に回転を発火するため回転遅延がゼロになり、
+  /// 判定窓を広げられる。実機評価（125ms では2回目のタップが間に合わない）により
+  /// 300ms に設定した（ADR-0019 追補）。
+  static const int _doubleTapMs = 300;
 
-  /// 回転を保留しているタイマー（ダブルタップ待ち）。dispose でキャンセルする。
-  Timer? _tapTimer;
+  /// 直前にタップしたピースの index（ダブルタップ判定用）。
+  int? _lastTapIndex;
 
-  /// 回転を保留しているピースの index（ダブルタップ待ち）。
-  int? _pendingTapIndex;
+  /// 直前にタップした時刻（ダブルタップ判定用）。
+  DateTime? _lastTapTime;
 
   @override
   void dispose() {
-    _tapTimer?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -277,7 +278,7 @@ class _PieceTrayState extends State<PieceTray> {
       // 縦方向（上下どちらでも）の動き → 掴み開始
       _dragging = true;
       final index = _pickedIndex!;
-      _cancelPendingTapForDragStart(index);
+      _clearTapRecordForDragStart();
       widget.onPickup(index, e.position, _itemCenterGlobal(index));
     } else {
       // 横方向（真横寄り） → スクロールに委譲（以後このジェスチャでは掴まない）
@@ -312,62 +313,42 @@ class _PieceTrayState extends State<PieceTray> {
     _scrollDelegated = false;
   }
 
-  /// ドラッグ開始が確定した際、保留中のタップ判定（ダブルタップ待ち）を
-  /// 解消する（PR #93: ドラッグ中に保留タイマーが誤って回転を発火する
-  /// バグの修正）。
-  ///
-  /// ドラッグ開始する [dragIndex] のタップが保留中なら、それは
-  /// ドラッグの起点となった 1 回目のタップなのでキャンセルして破棄する
-  /// （回転させない）。別ピースのタップが保留中なら、その回転を
-  /// 先に確定してから保留をクリアする（_handleTap の「別ピース」分岐と同じ扱い）。
-  void _cancelPendingTapForDragStart(int dragIndex) {
-    final timer = _tapTimer;
-    final pending = _pendingTapIndex;
-    if (timer == null || !timer.isActive) return;
-
-    timer.cancel();
-    _tapTimer = null;
-    _pendingTapIndex = null;
-    if (pending != null && pending != dragIndex) {
-      widget.onTapPiece(pending);
-    }
+  /// ドラッグ開始が確定した際、直前のタップ記録（ダブルタップ判定用）を
+  /// クリアする。タップ→ドラッグ→タップという連続操作で、ドラッグ後の
+  /// 新しいタップが直前のタップとのダブルタップとして誤判定されるのを防ぐ。
+  void _clearTapRecordForDragStart() {
+    _lastTapIndex = null;
+    _lastTapTime = null;
   }
 
-  /// タップを回転／反転に振り分ける（②.5 反転UI・ADR-0019 追補）。
+  /// タップを回転／反転に振り分ける（待ちなし方式・ADR-0019 追補）。
   ///
   /// トレイは自前のポインタ処理（GestureDetector ではなく Listener）でタップを
   /// 検出しているため、Flutter 標準の onDoubleTap が使えない。ここで手動判定する:
-  /// 1 回目のタップは即座に回転せず [_doubleTapMs] だけ待つ。待っている間に
-  /// 同じピースを再タップしたら「ダブルタップ＝反転」とみなし回転しない。
-  /// 別ピースをタップしたら保留中の回転を先に確定してから新しいタップを保留する。
-  /// 時間切れなら「シングルタップ＝回転」を発火する。
+  /// タップのたびに即座に widget.onTapPiece（回転）を発火する（待ちなし）。
+  /// 直前と同じピースが [_doubleTapMs] 以内に再タップされたら、それは
+  /// ダブルタップ＝反転とみなし widget.onFlipPiece を発火する
+  /// （1 回目のタップで発火済みの回転は onFlipPiece 側で打ち消す）。
   void _handleTap(int index) {
-    final timer = _tapTimer;
-    final pending = _pendingTapIndex;
+    final now = DateTime.now();
+    final lastIndex = _lastTapIndex;
+    final lastTime = _lastTapTime;
 
-    // 同じピースの 2 回目 → ダブルタップ＝反転（保留中の回転はキャンセル）
-    if (timer != null && timer.isActive && pending == index) {
-      timer.cancel();
-      _tapTimer = null;
-      _pendingTapIndex = null;
+    if (lastIndex == index &&
+        lastTime != null &&
+        now.difference(lastTime).inMilliseconds <= _doubleTapMs) {
+      // 同じピースの 2 回目 → ダブルタップ＝反転。直後の 3 回目のタップは
+      // 記録をクリアするため新規の 1 回目として扱われる。
       widget.onFlipPiece(index);
+      _lastTapIndex = null;
+      _lastTapTime = null;
       return;
     }
 
-    // 別ピースの保留が残っていれば、その回転を先に確定する
-    if (timer != null && timer.isActive && pending != null) {
-      timer.cancel();
-      widget.onTapPiece(pending);
-    }
-
-    // このタップを保留し、時間切れで回転を発火する
-    _pendingTapIndex = index;
-    _tapTimer = Timer(const Duration(milliseconds: _doubleTapMs), () {
-      final fire = _pendingTapIndex;
-      _tapTimer = null;
-      _pendingTapIndex = null;
-      if (fire != null) widget.onTapPiece(fire);
-    });
+    // 新規の 1 回目のタップ（または別ピース）→ 即座に回転を発火
+    widget.onTapPiece(index);
+    _lastTapIndex = index;
+    _lastTapTime = now;
   }
 
   @override
