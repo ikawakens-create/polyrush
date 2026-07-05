@@ -178,10 +178,17 @@ class PlayScreenState extends State<PlayScreen> with TickerProviderStateMixin {
   }
 
   /// トレイのピースをダブルタップしたとき: 左右反転（配置前のトレイピースのみ）。
+  /// ダブルタップ（反転）確定時に呼ばれる（待ちなし方式・ADR-0019 追補）。
+  ///
+  /// 待ちなし方式では 1 回目のタップで既に回転（rotateCw）が発火済みのため、
+  /// その回転を rotateCcw で打ち消してから flip を適用する。
   void _onFlipPiece(int index) {
     final st = _orientations;
     if (st == null) return;
-    setState(() => st.flip(index));
+    setState(() {
+      st.rotateCcw(index);
+      st.flip(index);
+    });
     PlayHaptics.pickup(); // 反転の軽い触覚（実機で要調整・不要なら外す）
   }
 

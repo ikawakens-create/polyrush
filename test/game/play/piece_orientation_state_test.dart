@@ -48,5 +48,29 @@ void main() {
       state.flip(0);
       expect(state.orientationOf(0).cells, before);
     });
+
+    test('rotateCcw の後に rotateCw を適用すると元の向きに戻る', () {
+      final state = PieceOrientationState.fromPuzzle(puzzle);
+      final before = state.orientationOf(0).cells;
+      state.rotateCcw(0);
+      state.rotateCw(0);
+      expect(state.orientationOf(0).cells, before);
+    });
+
+    test('rotateCw → rotateCcw → flip の結果は flip 単独の結果と一致する'
+        '（待ちなし方式ダブルタップの実効セマンティクスが「反転のみ」になること）', () {
+      final withRotation = PieceOrientationState.fromPuzzle(puzzle);
+      withRotation.rotateCw(0);
+      withRotation.rotateCcw(0);
+      withRotation.flip(0);
+
+      final flipOnly = PieceOrientationState.fromPuzzle(puzzle);
+      flipOnly.flip(0);
+
+      expect(
+        withRotation.orientationOf(0).cells,
+        flipOnly.orientationOf(0).cells,
+      );
+    });
   });
 }
