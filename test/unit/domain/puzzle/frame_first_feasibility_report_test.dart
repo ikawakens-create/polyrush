@@ -210,8 +210,9 @@ Set<Cell>? _generateFrame(Difficulty d, List<(int, int, int)> boxes, int seed) {
   return null;
 }
 
-/// pool から重複ありで blockCount 個を選び、セル数合計が targetCells に一致する
-/// 組み合わせ(マルチセット)をすべて列挙する。
+/// pool から重複なしで blockCount 個を選び、セル数合計が targetCells に一致する
+/// 組み合わせ(全ピース異種)をすべて列挙する。V3 の usedSourceIds と同じ
+/// 「1タスク内は全異種」ルール(実物ウボンゴも同様)に合わせている。
 /// countSolutions はセル数不一致だと 0 を即返すため、ここで合計一致に絞ることで
 /// 無駄な呼び出しを避ける。サイズ昇順ソート + 上下界枝刈りで列挙自体は高速。
 List<List<PolyominoData>> _enumerateSets(
@@ -236,7 +237,7 @@ List<List<PolyominoData>> _enumerateSets(
       final s = sorted[i].size;
       if (s > cells) break; // 昇順なので以降はさらに大きく、全て不適
       chosen.add(sorted[i]);
-      rec(i, count - 1, cells - s);
+      rec(i + 1, count - 1, cells - s);
       chosen.removeLast();
     }
   }
