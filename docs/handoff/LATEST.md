@@ -1,143 +1,123 @@
-# Handoff: ⑤b FrameFirstPuzzleGenerator 統合＋切替トグル＋比較計測（システム割当ブランチ claude/frame-first-integration-9jhs54）
+# Handoff: ⑤c frame-first 性能改善（セット走査順シャッフル＋firstTiling先行）
 
-- 日付: 2026-07-06
-- タスク: ADR-0020 判断1/2/7/8/9 に従い、⑤a で追加した3モジュール
-  （FrameGenerator / enumerateDistinctPieceSets / FrameTiler）を使って
-  `FrameFirstPuzzleGenerator` を実装し、コンパイル時トグル
-  （`puzzle_generator_selector.dart` / `kUseFrameFirstGenerator`）経由で
-  play_screen から V3(NonTrivial) 経路と切替できるようにした。既定は
-  false（従来の V3 経路）のため本 PR で実挙動は変わらない。
+- 日付: 2026-07-07
+- タスク: ADR-0020 の frame-first 生成器（⑤b で統合済み）について、判断9 の実生成計測で
+  判明した hard mean 507ms・max 3.3s（V3 は 4ms）の性能課題を、2段構えの改善で緩和した。
+  同じ (difficulty, seed) なら結果は決定論的のまま。
+  - Step1 `shuffleSets`: `enumerateDistinctPieceSets` の結果を (seed, attempt) 由来のサブ
+    シードで Fisher-Yates シャッフルしてから走査（採用セットが列挙順の後方に固まる偏りを解消）。
+  - Step2 `tilingFirst`: 走査を `firstTiling` 先行にし、非 separable のときだけ重い
+    `countSolutions` を掛ける（separable セットには課さない）。
+  - 両スイッチとも既定 `true`（本番＝最終形）。`false` は判断9 の A/B/C 比較計測専用。
 
 ## 1. 環境チェック結果
 
 ```
 $ git fetch origin && git checkout develop && git pull origin develop
 $ git log --oneline -5
+eaef44c feat(puzzle): FrameFirstPuzzleGenerator統合＋切替トグル＋比較計測（⑤b） (#98)
 288e705 feat(puzzle): 枠ファースト生成器の新規libモジュール群＋テスト＋ADR（⑤a） (#97)
 798c1f3 test(puzzle): 枠ファースト実現可能性 計測CI を追加（ロードマップ④） (#96)
 1859403 fix(flip): ダブルタップ判定を待ちなし方式に変更（②.5/③実機フィードバック対応） (#95)
 37af9f3 feat(scramble): ③ スクランブル＋forgiveness統合（ADR-0019 完結） (#94)
-54fa519 feat(flip): ②.5 反転UI ダブルタップで左右反転（ADR-0019 追補） (#93)
 ```
 
-`ls lib/domain/puzzle/` で既存 Task 成果物（solver.dart / verified_puzzle_generator.dart /
-compact_puzzle_generator_v3.dart / frame_generator.dart / frame_tiler.dart /
-piece_set_enumerator.dart ほか）の存在を確認済み。develop はローカルにも fast-forward
-済み。その後 `docs/handoff/LATEST.md`（⑤a の申し送り、PR #97）を読み、直近文脈
-（⑤a 完了・⑤b で統合＋トグル＋計測を行う方針）を把握した。
+`ls lib/domain/puzzle/` で `frame_first_puzzle_generator.dart` ほか既存 Task 成果ファイル
+（solver.dart / verified_puzzle_generator.dart / compact_puzzle_generator_v3.dart /
+frame_generator.dart / frame_tiler.dart / piece_set_enumerator.dart ほか）の存在を確認済み。
+develop はローカルにも fast-forward 済み（288e705 → eaef44c、⑤b の #98 を含む）。
+その後 `docs/handoff/LATEST.md`（⑤b の申し送り）を読み、直近文脈（⑤b 完了・normal/hard の
+生成コストが重い問題が要検討事項として残っている状態）を把握した。
 
-**ブランチについて**: 本セッションはシステムにより `claude/frame-first-integration-9jhs54`
-ブランチが割当されており、手動命名（指示書指定の `feature/frame-first-integration`）が
-できない状態だった。CLAUDE.md の「システム割当ブランチ」例外に従い、このブランチで
-作業した。`git merge-base --is-ancestor develop HEAD` で develop 最新（288e705）を
-既に含んでいることを確認済み（このブランチは develop の HEAD と同一コミットを
-指しており、追加のマージは不要だった）。
+ブランチは指示通り `git checkout -b feature/frame-first-perf` で develop から手動作成
+（システム割当は発生しなかった）。
 
-## 2. 作成/編集ファイル一覧
+## 2. 作成/変更ファイル一覧
 
-新規:
+変更（全文差し替え・指示書どおり2ファイルのみ）:
 - `lib/domain/puzzle/frame_first_puzzle_generator.dart`
-- `lib/domain/puzzle/puzzle_generator_selector.dart`
-- `test/unit/domain/puzzle/frame_first_puzzle_generator_test.dart`
 - `test/unit/domain/puzzle/frame_first_comparison_report_test.dart`
+- `docs/handoff/LATEST.md`（本ファイル・本タスクの申し送り更新）
 
-編集:
-- `lib/ui/screens/play/play_screen.dart`（呼び出し口2箇所を `generateSelectedPuzzle(...)`
-  に差し替え＋import を `non_trivial_puzzle_generator.dart` → `puzzle_generator_selector.dart`
-  に入替。それ以外の行は無変更）
-- `docs/handoff/LATEST.md`（本ファイル）
-- `docs/handoff/HANDOFF_ROADMAP_solo_v1.md`（⑤ 行の状態を「新規」→「完了」に更新）
+## 3. 削除/変更した既存ファイル
 
-## 3. 確定資産の変更なし確認
-
-CLAUDE.md 変更禁止リストのファイル（solver.dart / verified_puzzle_generator.dart /
-compact_puzzle_generator(_v2/_v3).dart / non_trivial_puzzle_generator.dart /
-puzzle_generator.dart / difficulty.dart / polyomino(_transformer).dart /
-puzzle_metrics.dart ほか）には一切触れていない。⑤a の3モジュール
-（frame_generator.dart / frame_tiler.dart / piece_set_enumerator.dart）も確定資産として
-一切変更していない（読んで API を確認したのみ）。play_screen.dart は指示された
-「呼び出し口2箇所の差し替え＋import入替」以外の行は変更していない。
+上記以外の既存ファイルへの変更なし。CLAUDE.md 変更禁止リスト・⑤a 確定資産
+（piece_set_enumerator.dart / frame_tiler.dart / frame_generator.dart / solver.dart /
+puzzle_metrics.dart / compact_puzzle_generator*.dart / puzzle_generator_selector.dart
+（`kUseFrameFirstGenerator=false` 不変）ほか）には一切触れていない。
 
 ## 4. テスト結果
 
-- `flutter analyze`（プロジェクト全体）: **エラー・警告ゼロ**。info 60件はすべて
-  既存パターン踏襲の `avoid_print`（計測レポートの print 出力）・既存の
-  `dangling_library_doc_comments`（tray_layout.dart、本タスク対象外）。所要時間 約15秒。
-- `dart format`（対象5ファイル）: 3ファイル（`frame_first_puzzle_generator_test.dart` /
-  `frame_first_comparison_report_test.dart` / `play_screen.dart`）に整形差分あり
-  （改行位置・空行のみ、ロジック変更なし）。適用後は差分なし。
-- `flutter test test/unit/domain/puzzle/frame_first_puzzle_generator_test.dart test/unit/domain/puzzle/frame_first_comparison_report_test.dart`:
-  **7件 pass / 0 fail**（生成契約テスト difficulty×3 + 決定論1件 + 比較計測レポート
-  difficulty×3）。所要時間 約31.5秒。
-- `flutter test`（全体）: **694件 pass / 0 fail**（既存687件 → 今回+7件で想定通り）。
-  所要時間 約31秒。リグレッションなし。
+- `flutter analyze`（プロジェクト全体）: **エラー・警告ゼロ**。info 60件はすべて既存パターン
+  踏襲の `avoid_print`（計測レポートの print）・既存の `dangling_library_doc_comments`
+  （tray_layout.dart、本タスク対象外）。所要時間 約14秒。
+- `dart format`（対象2ファイル）: `frame_first_puzzle_generator.dart` は差分なし。
+  `frame_first_comparison_report_test.dart` は `expect(...)` の改行位置のみ整形差分あり
+  （ロジック変更なし）。適用後は差分なし。
+- `flutter test test/unit/domain/puzzle/frame_first_puzzle_generator_test.dart`:
+  **4件 pass / 0 fail**（生成契約テスト difficulty×3 + 決定論1件）。既定を最終形(C)に
+  変えても既存の性質ベーステストはそのまま通過。
+- `flutter test test/unit/domain/puzzle/frame_first_comparison_report_test.dart`:
+  **3件 pass / 0 fail**（difficulty×3 の比較レポート）。所要時間 約22秒。
+- `flutter test`（全体）: **694件 pass / 0 fail**（⑤b と同数・リグレッションなし）。
+  所要時間 約37秒。
 
-### 比較計測レポート全文（ADR-0020 判断9・V3 vs frame-first、各20 seeds）
+### 比較計測レポート全文（V3 / A(⑤b現状) / B(Step1のみ) / C(Step1+2最終)、各20 seeds）
 
 ```
 ===== 比較計測: easy (20 seeds) =====
-  [easy] V3(NonTrivial): 成功 20/20 / 充填率 mean=0.717 / separable 65.0% / 生成時間ms mean=4.5 max=42.3 / distinct正準形状 19
-  [easy] frame-first   : 成功 20/20 / 充填率 mean=0.829 / separable 85.0% / 生成時間ms mean=3.1 max=18.7 / distinct正準形状 8
+  [easy] V3(NonTrivial)      : 成功 20/20 / 充填率 mean=0.717 / separable 65.0% / 生成時間ms mean=2.6 max=20.3 / distinct正準形状 19
+  [easy] frameFirst A(5b現状) : 成功 20/20 / 充填率 mean=0.829 / separable 85.0% / 生成時間ms mean=2.6 max=11.1 / distinct正準形状 8
+  [easy] frameFirst B(Step1)  : 成功 20/20 / 充填率 mean=0.829 / separable 55.0% / 生成時間ms mean=1.5 max=4.4 / distinct正準形状 8
+  [easy] frameFirst C(最終)   : 成功 20/20 / 充填率 mean=0.829 / separable 55.0% / 生成時間ms mean=1.2 max=2.8 / distinct正準形状 8
 
 ===== 比較計測: normal (20 seeds) =====
-  [normal] V3(NonTrivial): 成功 20/20 / 充填率 mean=0.671 / separable 0.0% / 生成時間ms mean=3.9 max=15.2 / distinct正準形状 20
-  [normal] frame-first   : 成功 20/20 / 充填率 mean=0.897 / separable 0.0% / 生成時間ms mean=40.8 max=149.4 / distinct正準形状 12
+  [normal] V3(NonTrivial)      : 成功 20/20 / 充填率 mean=0.671 / separable 0.0% / 生成時間ms mean=2.6 max=6.3 / distinct正準形状 20
+  [normal] frameFirst A(5b現状) : 成功 20/20 / 充填率 mean=0.897 / separable 0.0% / 生成時間ms mean=31.7 max=115.9 / distinct正準形状 12
+  [normal] frameFirst B(Step1)  : 成功 20/20 / 充填率 mean=0.897 / separable 0.0% / 生成時間ms mean=3.7 max=11.4 / distinct正準形状 12
+  [normal] frameFirst C(最終)   : 成功 20/20 / 充填率 mean=0.897 / separable 0.0% / 生成時間ms mean=3.2 max=9.4 / distinct正準形状 12
 
 ===== 比較計測: hard (20 seeds) =====
-  [hard] V3(NonTrivial): 成功 20/20 / 充填率 mean=0.715 / separable 0.0% / 生成時間ms mean=4.0 max=15.2 / distinct正準形状 20
-  [hard] frame-first   : 成功 20/20 / 充填率 mean=0.896 / separable 0.0% / 生成時間ms mean=507.6 max=3301.9 / distinct正準形状 13
+  [hard] V3(NonTrivial)      : 成功 20/20 / 充填率 mean=0.715 / separable 0.0% / 生成時間ms mean=3.7 max=15.0 / distinct正準形状 20
+  [hard] frameFirst A(5b現状) : 成功 20/20 / 充填率 mean=0.896 / separable 0.0% / 生成時間ms mean=420.9 max=2777.4 / distinct正準形状 13
+  [hard] frameFirst B(Step1)  : 成功 20/20 / 充填率 mean=0.896 / separable 0.0% / 生成時間ms mean=379.1 max=2759.2 / distinct正準形状 13
+  [hard] frameFirst C(最終)   : 成功 20/20 / 充填率 mean=0.896 / separable 0.0% / 生成時間ms mean=285.2 max=2017.0 / distinct正準形状 13
 ```
 
-観察: frame-first は easy/normal/hard いずれも充填率が V3 より高い（枠を先に
-「ずんぐり良形」に絞ってから敷き詰めるため）。easy は separable率も V3(65.0%)より
-frame-first(85.0%)の方が高い（non-separableを狙う normal/hard とは逆に、easyは
-フィルタなしでそのまま採用するため、枠形状の効果がそのまま出ている）。一方で
-生成時間は normal で mean 40.8ms(V3の約10倍)、hard では mean 507.6ms・max 3.3秒
-（V3の約100倍以上）と大幅に重い。これは normal/hard で
-straightCutSeparable==false のセットが見つからず、枠×セットの全走査
-（enumerateDistinctPieceSets の組み合わせ全部 × countSolutions）が末尾まで
-毎回実行された上でフォールバック採用しているため（frame-first の separable率が
-両難易度とも0.0%）。実機評価前にこの生成コストが許容範囲か Opus 判断が必要。
+観察: easy/normal では Step1(B)・Step1+2(C) とも顕著に速くなった（normal: A mean31.7ms→
+C mean3.2ms、V3とほぼ同等）。easy は separable率が A(85.0%)からB/C(55.0%)へ下がっている
+点に注意（シャッフルにより「たまたま先頭にあった高separable率セット」に依存しなくなり、
+easyの母集団本来の分布に近づいたためと考えられる。easyはフィルタ対象外なので生成成功率・
+充填率には影響なし）。
 
-distinct正準形状数は frame-first の方が V3 より少なめ（easy: 8 vs 19、normal:
-12 vs 20、hard: 13 vs 20）。これは枠バリエーションが FrameGenerator の
-_carveFrame（貪欲除去）由来であり、⑤a 申し送り済みの「実測28種／理論上限154種」
-とも整合する傾向（十分だが理論上限には届いていない）。
+hard は改善したが目標未達: mean 420.9ms(A)→285.2ms(C)、max 2777.4ms(A)→2017.0ms(C)。
+指示書の目標（mean<=100ms・max<=500ms）には届いていない。hard は separable率が
+A/B/C 全て0.0%のままで、non-separableなセットが（このマシンのこの20seed母集団では）
+一つも見つからず、毎回 tilingFirst でも全セットを走査してから protrusion最小の
+フォールバックを採用している。シャッフル(Step1)は「早期に非separableへ当たる」ことを
+狙った改善だが、非separableな候補自体が存在しない/稀な枠では効果が薄く、tilingFirst
+(Step2)による countSolutions 呼び出し削減の効果（A→B, B→Cの差）のみが効いている形。
 
 ## 5. 指示書からの逸脱
 
-なし。4ファイルすべて指示書の内容をそのまま新規作成し、play_screen.dart は
-呼び出し口2箇所の差し替え＋import入替のみ。ロジック（探索順・採用条件・
-フォールバック方針）は変更していない。コンパイルエラーもなし。ブランチ名は
-システム割当ブランチを使用（1章参照、develop最新を含むことを確認済み）。
+なし。変更したのは指示された2ファイルのみ（全文差し替え）。⑤a/⑤b確定資産・
+puzzle_generator_selector.dart のトグルは無変更。
 
 ## 6. PR
 
-未作成。理由: このセッションではコードの作成・テスト・handoff更新までを実施し、
-PR作成は含めていない（ユーザー側から作成、または次回セッションで対応）。ブランチ
-`claude/frame-first-integration-9jhs54` は develop 最新（288e705）を含んだ状態で
-本コミットを積んでいる。
+未作成。理由: このセッションではコード変更・テスト実行・handoff更新までを実施し、
+PR作成はユーザー側のリクエストが必要なため待機。ブランチ `feature/frame-first-perf` は
+develop 最新（eaef44c）から作成済みでコミット可能な状態。
 
 ## 7. 次セッションへの申し送り
 
-1. 本 PR は `kUseFrameFirstGenerator = false` のままマージされる想定（挙動不変）。
-   実機評価で frame-first に切り替える判断が出たら、
-   `lib/domain/puzzle/puzzle_generator_selector.dart` の1行
-   （`const bool kUseFrameFirstGenerator = false;`）を true に変えるだけで
-   切替できる。将来 runtime 設定（デバッグパネル等）に昇格する場合は
-   このファイルが唯一の入口なので改修範囲が小さい。
-2. **要検討事項（Opus 判断が必要）**: 比較計測（4章）で判明した通り、
-   frame-first は normal/hard で生成コストが V3 の10〜100倍以上重い
-   （hard で mean 507.6ms・max 3.3秒/1パズル）。原因は
-   straightCutSeparable==false のセットが見つからず、毎回
-   enumerateDistinctPieceSets の全候補 × countSolutions を末尾まで
-   走査してからフォールバック採用しているため。実機切替前にこの
-   コストが許容範囲か、あるいは探索順・枝刈りの見直しが要るかを
-   Opus に相談すること（本 PR のスコープ外・ロジック変更禁止だったため
-   このまま報告のみ）。
-3. distinct正準形状数（枠バリエーション）は frame-first の方が V3 より
-   少なめ（4章参照）。⑤a 申し送りの _carveFrame 除去戦略見直しと
-   合わせて検討の余地がある。
-4. マルチセット化（ロードマップ⑥）は本 PR の frame-first パイプライン
-   （enumerateDistinctPieceSets が複数セットを列挙している）を前提に
-   設計されており、⑤完了により着手可能な状態になった。
+1. hard の C が目標（mean<=100ms/max<=500ms）を満たすかは井川が GitHub CI ログで
+   最終確認し、Fable レビューに回す。本セッションのローカル計測では目標未達
+   （mean 285.2ms・max 2017.0ms）だが、CI マシンでの数値は変動しうるため最終判断は
+   CI ログを優先すること。
+2. 目標達成なら次は本番トグル `kUseFrameFirstGenerator` の true 化＋実機評価の
+   小PR（別PR）。未達なら、hard で non-separable セットが実質見つからない構造的な
+   理由（枠形状 or セット候補の性質）自体の見直しが必要か、Fable/Opus に相談すること。
+3. ADR-0020 判断2 手順3 は「決定論的列挙順で最初の合格」から「決定論的シャッフル順で
+   最初の合格＋firstTiling先行」へ更新されたため、ADR-0020 への追補（1段落）は
+   Fable 承認後に別 docs PR で行う。

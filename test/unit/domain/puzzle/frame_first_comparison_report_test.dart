@@ -8,8 +8,14 @@ import 'package:polyrush/domain/puzzle/non_trivial_puzzle_generator.dart';
 import 'package:polyrush/domain/puzzle/puzzle_metrics.dart';
 import 'package:polyrush/domain/puzzle/verified_puzzle_generator.dart';
 
-// ADR-0020 判断9: V3(NonTrivial) と frame-first を並べて計測し、非退行と実用性を確認する。
-// 充填率・separable率・生成成功率・実生成時間(早期確定込み)・distinct 正準形状数を報告。
+// ADR-0020 判断9 + ⑤c: V3(NonTrivial) と frame-first の3構成を並べて計測する。
+//   (A) ⑤b現状     = shuffleSets:false, tilingFirst:false
+//   (B) Step1のみ   = shuffleSets:true,  tilingFirst:false
+//   (C) Step1+2最終 = shuffleSets:true,  tilingFirst:true
+// 充填率・separable率・生成成功率・実生成時間(早期確定込み)・distinct正準形状数を報告。
+// ⑤c 目標: hard で C の生成時間 mean <= 100ms・max <= 500ms(CI上)。
+// 生成時間はマシン依存でブレるため assert しない(レポートのみ)。非退行と目標達成の
+// 判定は井川が CI ログで行い、Fable レビューに回す。
 const int kSeeds = 20;
 
 class _Agg {
@@ -63,33 +69,67 @@ void _report(String difficulty, String label, _Agg a) {
 }
 
 void main() {
-  group('V3 vs frame-first 比較計測(ADR-0020 判断9)', () {
+  group('V3 vs frame-first 比較計測(ADR-0020 判断9 + ⑤c 3構成)', () {
     for (final d in Difficulty.values) {
-      test('${d.name}: 両生成器の比較レポート', () {
+      test('${d.name}: V3＋frame-first 3構成の比較レポート', () {
         final v3 = _measure(
           d,
           (seed) =>
               NonTrivialPuzzleGenerator.generate(difficulty: d, seed: seed),
         );
-        final ff = _measure(
+        final ffA = _measure(
           d,
-          (seed) =>
-              FrameFirstPuzzleGenerator.generate(difficulty: d, seed: seed),
+          (seed) => FrameFirstPuzzleGenerator.generate(
+            difficulty: d,
+            seed: seed,
+            shuffleSets: false,
+            tilingFirst: false,
+          ),
+        );
+        final ffB = _measure(
+          d,
+          (seed) => FrameFirstPuzzleGenerator.generate(
+            difficulty: d,
+            seed: seed,
+            shuffleSets: true,
+            tilingFirst: false,
+          ),
+        );
+        final ffC = _measure(
+          d,
+          (seed) => FrameFirstPuzzleGenerator.generate(
+            difficulty: d,
+            seed: seed,
+            shuffleSets: true,
+            tilingFirst: true,
+          ),
         );
         print('');
         print('===== 比較計測: ${d.name} ($kSeeds seeds) =====');
-        _report(d.name, 'V3(NonTrivial)', v3);
-        _report(d.name, 'frame-first   ', ff);
+        _report(d.name, 'V3(NonTrivial)      ', v3);
+        _report(d.name, 'frameFirst A(5b現状) ', ffA);
+        _report(d.name, 'frameFirst B(Step1)  ', ffB);
+        _report(d.name, 'frameFirst C(最終)   ', ffC);
 
-        expect(
-          ff.success,
-          greaterThan(0),
-          reason: '${d.name}: frame-first が生成できること',
-        );
         expect(
           v3.success,
           greaterThan(0),
-          reason: '${d.name}: V3 が生成できること(非退行確認)',
+          reason: '${d.name}: V3 が生成できること(非退行の基準線)',
+        );
+        expect(
+          ffA.success,
+          greaterThan(0),
+          reason: '${d.name}: frame-first A が生成できること',
+        );
+        expect(
+          ffB.success,
+          greaterThan(0),
+          reason: '${d.name}: frame-first B が生成できること',
+        );
+        expect(
+          ffC.success,
+          greaterThan(0),
+          reason: '${d.name}: frame-first C(最終形) が生成できること',
         );
       });
     }
