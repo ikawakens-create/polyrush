@@ -57,6 +57,10 @@ CLAUDE.md の「システム割当ブランチ」例外を適用してこのブ�
     `@Tags(['slow'])` 指定が無く通常レーンで走る構成だったため、本ファイルも
     それに合わせて指示書にあった `@Tags(['slow'])` 行と `library;` 行を
     削除し、通常レーンで実行される形にした(逸脱として下記5に明記)。
+  - 初回 push 時に pre-push フックの `dart format` チェックで未フォーマット
+    警告が出たため(改行位置が dart_style の現バージョンの整形と不一致)、
+    `dart format` を適用した修正コミットを追加で push 済み。最終状態は
+    `dart format --output=none --set-exit-if-changed` で 0 changed を確認済み。
 
 変更:
 - `docs/handoff/LATEST.md`(本ファイル・本タスクの申し送り更新。指定どおり
