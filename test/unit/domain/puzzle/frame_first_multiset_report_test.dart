@@ -60,8 +60,9 @@ String _tilingSig(List<PlacedBlock> blocks) {
   final s = List<int>.of(xs)..sort();
   final sum = s.fold<int>(0, (a, b) => a + b);
   final mid = s.length ~/ 2;
-  final median =
-      s.length.isOdd ? s[mid].toDouble() : (s[mid - 1] + s[mid]) / 2.0;
+  final median = s.length.isOdd
+      ? s[mid].toDouble()
+      : (s[mid - 1] + s[mid]) / 2.0;
   return (mean: sum / s.length, min: s.first, max: s.last, median: median);
 }
 
@@ -102,8 +103,11 @@ void main() {
         framesGenerated++;
         frameKeys.add(FrameGenerator.canonicalKey(frame));
 
-        final sets =
-            enumerateDistinctPieceSets(pool, d.blockCount, frame.length);
+        final sets = enumerateDistinctPieceSets(
+          pool,
+          d.blockCount,
+          frame.length,
+        );
         var tileable = 0, accepted = 0, acceptedNonSep = 0;
         final setSigs = <String>{};
         final tilingSigs = <String>{};
@@ -122,7 +126,9 @@ void main() {
           setSigs.add(_setSig(set));
           tilingSigs.add(_tilingSig(tiling));
           if (!isEasy) {
-            final m = computePuzzleMetrics(_buildPuzzle(frame, tiling, seed, d));
+            final m = computePuzzleMetrics(
+              _buildPuzzle(frame, tiling, seed, d),
+            );
             if (!m.straightCutSeparable) acceptedNonSep++;
           }
         }
@@ -133,29 +139,40 @@ void main() {
         distinctSetSigPerFrame.add(setSigs.length);
         distinctTilingSigPerFrame.add(tilingSigs.length);
 
-        expect(accepted, lessThanOrEqualTo(tileable),
-            reason: 'accepted は tileable の部分集合');
-        expect(setSigs.length, lessThanOrEqualTo(accepted),
-            reason: 'distinct 構成署名は accepted 数以下');
+        expect(
+          accepted,
+          lessThanOrEqualTo(tileable),
+          reason: 'accepted は tileable の部分集合',
+        );
+        expect(
+          setSigs.length,
+          lessThanOrEqualTo(accepted),
+          reason: 'distinct 構成署名は accepted 数以下',
+        );
       }
 
       final dStat = _stats(distinctSetSigPerFrame);
       maxDistinctAccepted[d] = dStat.max;
 
       buf
-        ..writeln('--- ${d.name} '
-            '(seeds=$n framesGenerated=$framesGenerated '
-            'distinctFrames=${frameKeys.length}) ---')
+        ..writeln(
+          '--- ${d.name} '
+          '(seeds=$n framesGenerated=$framesGenerated '
+          'distinctFrames=${frameKeys.length}) ---',
+        )
         ..writeln('tileable   sets/frame : ${_fmt(_stats(tileablePerFrame))}')
         ..writeln('accepted   sets/frame : ${_fmt(_stats(acceptedPerFrame))}');
       if (!isEasy) {
         buf.writeln(
-            'accepted&nonSep/frame : ${_fmt(_stats(acceptedNonSepPerFrame))}');
+          'accepted&nonSep/frame : ${_fmt(_stats(acceptedNonSepPerFrame))}',
+        );
       }
       buf
         ..writeln('distinct set-sigs/frm : ${_fmt(dStat)}')
-        ..writeln('distinct tiling-sigs  : '
-            '${_fmt(_stats(distinctTilingSigPerFrame))}');
+        ..writeln(
+          'distinct tiling-sigs  : '
+          '${_fmt(_stats(distinctTilingSigPerFrame))}',
+        );
     }
 
     sw.stop();
