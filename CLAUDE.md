@@ -97,6 +97,11 @@ PR 作成や、環境チェックの省略は引き続き禁止である。
 - `lib/core/result.dart` (Task 5)
 - `docs/adr/*.md` (合意済みの設計判断)
 - `pubspec.yaml` (依存変更は別途相談)
+- `lib/domain/puzzle/frame_generator.dart`（ADR-0020 / 枠生成・正準形。改造禁止。改良は新層を足す）
+- `lib/domain/puzzle/frame_tiler.dart`（ADR-0020 / 配置 materialize。改造禁止。改良は新層を足す）
+- `lib/domain/puzzle/piece_set_enumerator.dart`（ADR-0020 / セット列挙。改造禁止。改良は新層を足す）
+- `lib/domain/puzzle/frame_first_puzzle_generator.dart`（ADR-0020 / 現在の本番経路。改造禁止。改良は新層を足す）
+- `lib/domain/puzzle/multi_set_puzzle_generator.dart`（ADR-0021 / multi-set capability。改造禁止。改良は新層を足す）
 - `lib/game/play/placement_logic.dart` (Phase 2 / 配置ロジック本体。改造禁止。改良は新層を足す)
 - `lib/game/play/confetti_physics.dart` (Phase 2 / 紙吹雪パラメータ実機確定値: 80個・1.4秒・上40%。改造禁止)
 - `lib/ui/screens/play/tray_layout.dart` (Phase 2 / トレイ左詰めA方式の確定ロジック。改造禁止)
