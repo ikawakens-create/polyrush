@@ -18,8 +18,7 @@ String _sig(VerifiedPuzzle vp) {
   final blocks = vp.puzzle.blocks.map((b) {
     final cs = b.cells.toList()..sort(_cellCmp);
     return '${b.source.id}:${cs.map((c) => '${c.$1},${c.$2}').join(';')}';
-  }).toList()
-    ..sort();
+  }).toList()..sort();
   return '${vp.solutionCount}#${blocks.join('/')}';
 }
 
@@ -68,11 +67,18 @@ void main() {
     test('normal: seed を変えると複数の異なるパズルが出る(単調でない)', () {
       final sigs = <String>{};
       for (final seed in _seeds) {
-        final r = generateSelectedPuzzle(difficulty: Difficulty.normal, seed: seed);
-        if (r is Ok<VerifiedPuzzle, CompactPuzzleError>) sigs.add(_sig(r.value));
+        final r = generateSelectedPuzzle(
+          difficulty: Difficulty.normal,
+          seed: seed,
+        );
+        if (r is Ok<VerifiedPuzzle, CompactPuzzleError>)
+          sigs.add(_sig(r.value));
       }
-      expect(sigs.length, greaterThanOrEqualTo(5),
-          reason: 'seed を変えてもパズルが十分に散らばらない');
+      expect(
+        sigs.length,
+        greaterThanOrEqualTo(5),
+        reason: 'seed を変えてもパズルが十分に散らばらない',
+      );
     });
   });
 }
