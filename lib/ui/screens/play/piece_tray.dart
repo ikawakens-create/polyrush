@@ -16,6 +16,16 @@ const _pieceColors = <Color>[
 
 const _pieceBorderColor = Color(0xFF1B2A4A);
 
+/// ピース回転アニメ（平面内で -90°→0°）の所要時間。実機体感で調整する。
+const int _rotateAnimMs = 180;
+
+/// ピース反転（Y軸カード裏返し）アニメの所要時間。実機体感で調整する。
+const int _flipAnimMs = 260;
+
+/// 反転アニメ中間地点（t=0.5）での最大暗さ係数。
+/// shade = 1.0 - _flipShadeDepth * sin(pi*t)（t=0.5 で最も暗い）。
+const double _flipShadeDepth = 0.35;
+
 /// ピース 1 個を指定セルサイズで描く汎用ペインタ。
 ///
 /// トレイのサムネイルとドラッグ中の浮いたピースの両方に使う。
@@ -25,15 +35,22 @@ class PiecePainter extends CustomPainter {
     required this.orientation,
     required this.colorIndex,
     required this.cellSize,
+    this.shade = 1.0,
   });
 
   final PolyominoData orientation;
   final int colorIndex;
   final double cellSize;
 
+  /// 反転（カード裏返し）アニメ中の明度係数（1.0=通常、小さいほど暗い）。
+  final double shade;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final color = _pieceColors[colorIndex % _pieceColors.length];
+    final baseColor = _pieceColors[colorIndex % _pieceColors.length];
+    final color = shade >= 1.0
+        ? baseColor
+        : Color.lerp(baseColor, Colors.black, 1.0 - shade)!;
     final fill = Paint()..color = color;
     final border = Paint()
       ..color = _pieceBorderColor
@@ -60,7 +77,8 @@ class PiecePainter extends CustomPainter {
   bool shouldRepaint(PiecePainter old) =>
       old.orientation != orientation ||
       old.colorIndex != colorIndex ||
-      old.cellSize != cellSize;
+      old.cellSize != cellSize ||
+      old.shade != shade;
 }
 
 /// ピースを横並びで表示するトレイ。
@@ -112,12 +130,21 @@ class PieceTray extends StatefulWidget {
   State<PieceTray> createState() => _PieceTrayState();
 }
 
-class _PieceTrayState extends State<PieceTray> {
+class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   /// 左詰めで隙間が閉じる/開くアニメーションの所要時間。
   /// 実機で詰めたくなったら FeelConfig へ昇格させる。
   static const int _reflowMs = 160;
 
   final ScrollController _scrollCtrl = ScrollController();
+
+  /// ピースごとの回転／反転アニメ（見た目のみ・ドメイン不触）。
+  final Map<int, AnimationController> _rotateCtrl = {};
+  final Map<int, AnimationController> _flipCtrl = {};
+
+  /// 反転アニメの「反転前」の形。1 回目のタップ（回転適用前）の時点で
+  /// 確保しておく（ADR-0019 待ちなし方式では 2 回目のタップ時点だと
+  /// すでに回転後の状態になっているため）。
+  final Map<int, PolyominoData> _flipBeforeOrientation = {};
 
   Offset? _downPosition;
   int? _pickedIndex;
@@ -143,8 +170,88 @@ class _PieceTrayState extends State<PieceTray> {
 
   @override
   void dispose() {
+    for (final c in _rotateCtrl.values) {
+      c.dispose();
+    }
+    for (final c in _flipCtrl.values) {
+      c.dispose();
+    }
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant PieceTray oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.puzzle, oldWidget.puzzle)) {
+      // 新しいパズル → 前のパズルのピースに紐づくアニメ状態を破棄する。
+      for (final c in _rotateCtrl.values) {
+        c.dispose();
+      }
+      for (final c in _flipCtrl.values) {
+        c.dispose();
+      }
+      _rotateCtrl.clear();
+      _flipCtrl.clear();
+      _flipBeforeOrientation.clear();
+      _lastTapIndex = null;
+      _lastTapTime = null;
+    }
+  }
+
+  AnimationController _rotateControllerFor(int index) =>
+      _rotateCtrl.putIfAbsent(
+        index,
+        () => AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: _rotateAnimMs),
+          value: 1.0, // 未操作時はアイドル（角度 0）
+        ),
+      );
+
+  AnimationController _flipControllerFor(int index) => _flipCtrl.putIfAbsent(
+    index,
+    () => AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: _flipAnimMs),
+      value: 1.0, // 未操作時はアイドル（角度 0・shade 1.0）
+    ),
+  );
+
+  /// 回転タップ発火時: そのピースの反転アニメを即座にアイドルへ戻し、
+  /// 回転アニメを最初から再生する。
+  void _startRotateAnimation(int index) {
+    final flip = _flipCtrl[index];
+    flip?.stop();
+    flip?.value = 1.0;
+    final ctrl = _rotateControllerFor(index);
+    ctrl.stop();
+    ctrl.value = 0.0;
+    ctrl.forward();
+  }
+
+  /// 反転タップ発火時: 進行中の回転アニメを中間状態を残さず即座に破棄し
+  /// （要件A）、反転アニメだけを最初から再生する。
+  void _startFlipAnimation(int index, PolyominoData before) {
+    final rotate = _rotateCtrl[index];
+    rotate?.stop();
+    rotate?.value = 1.0;
+    _flipBeforeOrientation[index] = before;
+    final ctrl = _flipControllerFor(index);
+    ctrl.stop();
+    ctrl.value = 0.0;
+    ctrl.forward();
+  }
+
+  /// ドラッグ開始時: 中途半端な傾きのままドラッグへ入らないよう、
+  /// そのピースのアニメを即座に終了状態へスナップする（要件C）。
+  void _snapAnimationsToEnd(int index) {
+    final rotate = _rotateCtrl[index];
+    rotate?.stop();
+    rotate?.value = 1.0;
+    final flip = _flipCtrl[index];
+    flip?.stop();
+    flip?.value = 1.0;
   }
 
   double get _scrollOffset => _scrollCtrl.hasClients ? _scrollCtrl.offset : 0.0;
@@ -279,6 +386,7 @@ class _PieceTrayState extends State<PieceTray> {
       _dragging = true;
       final index = _pickedIndex!;
       _clearTapRecordForDragStart();
+      _snapAnimationsToEnd(index);
       widget.onPickup(index, e.position, _itemCenterGlobal(index));
     } else {
       // 横方向（真横寄り） → スクロールに委譲（以後このジェスチャでは掴まない）
@@ -339,14 +447,22 @@ class _PieceTrayState extends State<PieceTray> {
         now.difference(lastTime).inMilliseconds <= _doubleTapMs) {
       // 同じピースの 2 回目 → ダブルタップ＝反転。直後の 3 回目のタップは
       // 記録をクリアするため新規の 1 回目として扱われる。
+      // 反転前の形は 1 回目のタップ時点（回転適用前）に確保済みのものを使う
+      // （この時点の widget.orientationOf は既に回転後の値のため使えない）。
+      final before =
+          _flipBeforeOrientation[index] ?? widget.orientationOf(index);
       widget.onFlipPiece(index);
+      _startFlipAnimation(index, before);
       _lastTapIndex = null;
       _lastTapTime = null;
       return;
     }
 
-    // 新規の 1 回目のタップ（または別ピース）→ 即座に回転を発火
+    // 新規の 1 回目のタップ（または別ピース）→ 即座に回転を発火。
+    // 2 回目のタップが反転になった場合に備え、回転適用前の形を確保しておく。
+    _flipBeforeOrientation[index] = widget.orientationOf(index);
     widget.onTapPiece(index);
+    _startRotateAnimation(index);
     _lastTapIndex = index;
     _lastTapTime = now;
   }
@@ -381,17 +497,7 @@ class _PieceTrayState extends State<PieceTray> {
                             padding: EdgeInsets.all(
                               widget.feelConfig.hitboxPad,
                             ),
-                            child: CustomPaint(
-                              size: Size(
-                                _pieceDrawWidth(i),
-                                _pieceDrawHeight(i),
-                              ),
-                              painter: PiecePainter(
-                                orientation: widget.orientationOf(i),
-                                colorIndex: i,
-                                cellSize: PieceTray._trayCell,
-                              ),
-                            ),
+                            child: _buildPieceVisual(i),
                           ),
                         ),
                 ),
@@ -399,6 +505,68 @@ class _PieceTrayState extends State<PieceTray> {
           ),
         ),
       ),
+    );
+  }
+
+  /// ピース [i] の見た目（回転・反転アニメの Transform で包んだ CustomPaint）。
+  ///
+  /// レイアウトサイズ（CustomPaint の size）は常に現在の
+  /// [PieceTray.orientationOf] を基準にし、アニメの進行状況に左右されない
+  /// （要件B）。Transform は描画のみに適用する。
+  Widget _buildPieceVisual(int i) {
+    final rotateCtrl = _rotateControllerFor(i);
+    final flipCtrl = _flipControllerFor(i);
+    final size = Size(_pieceDrawWidth(i), _pieceDrawHeight(i));
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([rotateCtrl, flipCtrl]),
+      builder: (context, _) {
+        if (flipCtrl.value < 1.0) {
+          final t = Curves.easeInOut.transform(flipCtrl.value);
+          final before = _flipBeforeOrientation[i] ?? widget.orientationOf(i);
+          final PolyominoData content;
+          final double angleY;
+          if (t < 0.5) {
+            content = before;
+            angleY = pi * t;
+          } else {
+            content = widget.orientationOf(i);
+            angleY = pi * t - pi;
+          }
+          final shade = 1.0 - _flipShadeDepth * sin(pi * t);
+          final matrix = Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(angleY);
+          return Transform(
+            alignment: Alignment.center,
+            transform: matrix,
+            child: CustomPaint(
+              size: size,
+              painter: PiecePainter(
+                orientation: content,
+                colorIndex: i,
+                cellSize: PieceTray._trayCell,
+                shade: shade,
+              ),
+            ),
+          );
+        }
+
+        final rotT = Curves.easeOutCubic.transform(rotateCtrl.value);
+        final angle = -pi / 2 + pi / 2 * rotT;
+        return Transform.rotate(
+          angle: angle,
+          alignment: Alignment.center,
+          child: CustomPaint(
+            size: size,
+            painter: PiecePainter(
+              orientation: widget.orientationOf(i),
+              colorIndex: i,
+              cellSize: PieceTray._trayCell,
+            ),
+          ),
+        );
+      },
     );
   }
 }
